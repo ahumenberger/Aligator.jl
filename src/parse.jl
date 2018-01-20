@@ -2,6 +2,51 @@ using Clang.cindex
 
 cfile = "/Users/ahumenberger/repo/projects/aligator_mathematica/benchmarks/c/euclidex.c"
 
+# const UnaryExpr = String
+
+# struct BinaryExpr
+#     op::BinaryOp
+#     lhs::Union{BinaryExpr, UnaryExpr}
+#     rhs::Union{BinaryExpr, UnaryExpr}
+# end
+
+# abstract type BinaryOp end
+
+# struct AddOp <: BinarayOp
+#     data::String
+# end
+
+# struct SubOp <: BinarayOp
+#     data::String
+# end
+
+# struct MulOp <: BinarayOp
+#     data::String
+# end
+
+# struct DivOp <: BinarayOp
+#     data::String
+# end
+
+# struct EqOp <: BinarayOp
+#     data::String
+# end
+
+# function binop(op::String)
+#     if op == "="
+#         return EqOp(op)
+#     elseif op == "+"
+#         return AddOp(op)
+#     elseif op == "-"
+#         return SubOp(op)
+#     elseif op == "*"
+#         return MulOp(op)
+#     elseif op == "/"
+#         return DivOp(op)
+#     else
+#         error("unknown binary operator")
+# end
+
 top = parse_header(cfile)
 
 function traverse_compound(node::CLCursor)
@@ -64,6 +109,7 @@ function traverse(node::IfStmt)
 end
 
 function traverse(node::BinaryOperator)
+    println("DATAAAA: ", cu_kind(node))
     tok = tokenize(node)
     if tok[2].text != "="
         return # TODO: no assignment
@@ -73,11 +119,27 @@ function traverse(node::BinaryOperator)
     lhs = tokenize(chs[1])
     println(typeof(lhs))
     rhs = tokenize(chs[2])
-    println(symbols(rhs))
+    # println(symbolic(rhs))
 
     if length(lhs) == 1 && isa(lhs[1], Clang.cindex.Identifier)
     end
 end
+
+# function symbolic(expr::TokenList)
+#     for t in expr
+#         if isa(t, Clang.cindex.Identifier)
+#             # vt = symbol(t)
+#         elseif isa(t, Clang.cindex)
+#             println(typeof(t))
+#         end
+#     end
+# end
+
+# function symbolic(expr::Clang.cindex.Identifier)
+#     return "x"
+# end
+
+# function symbolic(expr::Clang.cindex.Identifier)
 
 function traverse(node::CompoundAssignOperator)
     println("FOOUOOUODUDND")
@@ -92,4 +154,5 @@ end
 # traverse_if(ifs[1])
 
 traverse(top)
+
 

@@ -1,4 +1,36 @@
 using SymPy
+using Nemo
+using ContinuedFractions
+using ArraySlices # used for convenience functions for iterating rows of matrices
+
+# represents the algebraic number in the field Q[theta] given by c0 + c_1 theta + ...
+struct AlgebraicNumber
+    theta::Sym
+    coeffs::Array{Sym, 1}
+end
+
+function polyrepr(x, coeffs)
+   return sum([c*x^(i-1) for (i, c) in enumerate(coeffs)]) 
+end
+
+function poly(a::AlgebraicNumber)
+    return polyrepr(a.theta, a.coeffs)
+ end
+
+function Base.show(io::IO, a::AlgebraicNumber)
+    print(io, "[$(a.theta), $(a.coeffs)] $(expand(polyrepr(a.theta, a.coeffs)))")
+end
+
+function common_number_field(extensions::Array{Sym, 1})
+    nonrat = filter(ext -> (is_rational(ext) == false), extensions)
+    if isempty(nonrat)
+        theta = 1
+    else
+        minpoly, coeffs = primitive_element(Sym(PyCall.array2py(nonrat)))
+        theta = dot(nonrat, coeffs)
+    end
+    return [AlgebraicNumber(theta, field_isomorphism(ext, theta)) for ext in extensions]
+end
 
 function z_nullspace(matrix)
     h, t = hnf_with_transform(matrix)
@@ -24,20 +56,34 @@ function z_module_intersect(base1, base2)
     return lll(transpose(dot(m1, m2)))
 end
 
-function masser_bound(roots)
+function minimal_polynomial(a::AlgebraicNumber, x::Sym)
+    return SymPy.minimal_polynomial(poly(a), x)
+end
+
+function masser_bound(roots::Array{AlgebraicNumber, 1})
     k = length(roots)
     # assume all roots belong to the same number field
-    d = 0 #TODO: degree of field extension
+    @syms x
+    p = Poly(SymPy.minimal_polynomial(roots[1].theta, x), x)
+    d = SymPy.degree(p) #TODO: degree of field extension
 
     # h = maximum height of the a[i]. The height of an algebraic number is the 
     # sum of the degree and the binary length of all coefficients in the 
     # defining equation over Q
     h = 0
-    @sym x
     for root in roots
-        p = minimal_polynomial(root, x)
-        h0 = ceil()
+        p = Poly(minimal_polynomial(root, x), x)
+        h0 = ceil(SymPy.degree(p) + sum([SymPy.log(abs(ex)) for ex in coeffs(p)]))
+        println("h0: ", h0)
+        if h0 > h
+            h = h0
+        end
     end
+    println("d: ", d)
+    println("h: ", h)
+    println("k: ", k)
+
+    return ceil(d^2 * (4*h*k*d* (SymPy.log(2+d)/SymPy.log(SymPy.log(2+d)))^3)^(k-1) + 1)
 end
 
 function findrelations(roots::Array{Sym,1})
@@ -52,11 +98,13 @@ function findrelations(roots::Array{Sym,1})
         return B
     end
 
-    a = to_number_field(Sym(PyCall.array2py(roots))) # does nothing if the roots belong to the same field
+    an = common_number_field(roots) # TODO: does nothing if the roots belong to the same field
+    a = poly.(an)
 
-    println(a, typeof(a))
+    println("ABC: ", a)
     relog = [SymPy.real(SymPy.log(Sym(x))) for x in a]
     imlog = [SymPy.imag(SymPy.log(Sym(x))) for x in a]
+    imlog = [imlog, 2*SymPy.pi]
 
     println(relog)
     println(imlog)
@@ -73,33 +121,134 @@ function findrelations(roots::Array{Sym,1})
         # z is real and z >= 0
         if is_real(z) && is_real(sqrt(z))
             imlog[i] = 0
+        else
+            # TODO: try harder: If[ Element[RootReduce[z], Reals] && Element[Sqrt[RootReduce[z]], Reals], imLog[[i]] = 0 ];
         end
     end
 
     # comute a bound for the coefficients of the generators
-    bound = masser_bound(a)
+    bound = Int(masser_bound(an))
+    println("Masser bound: ", bound)
 
-    m = eye(length(a)) # identity matrix
+    m = SymPy.eye(length(a)) # identity matrix
 
     # successively refine the approximation until only valid generators are returned
-    level = ceil(N(log(bound, 2)) + 1)
-    while prod([check_relation(a, x) for x in m]) == 0
+    level = Int(ceil(N(log(bound, 2)) + 1))
+    while prod([check_relation(a, m[i,:]) for i in 1:size(m)[1]]) == 0
+        println("level: $(level), bound: $(bound)")
+        println(relog)
         m1 = getbasis(relog, level, bound)
+        println("basis: ", m1)
         m2 = getbasis(imlog, level, bound)
-        m2 = view(m2, :, 1:size(m2)-1)
-        m = z_module_intersect(m1, m2)
+        # m2 = view(m2, :, 1:size(m2)-1)
+        m = z_module_intersect(m1, m2[:,1:end-1])
     end
 
     return m
 end
 
-check_relation(a::Array{Sym}, e::Array{Sym}) = prod([ax^ex for (ax, ex) in zip(a,e)]) == 1
+check_relation(a::Array{Sym, 1}, e::Array{Float64, 1}) = prod([ax^ex for (ax, ex) in zip(a,e)]) == 1
 
+function convergent(x, n)
+    cf = ContinuedFraction(Rational(x))
+    co = convergents(cf)
+    res = next(co, n)[1]
+    println("type: ", typeof(res))
+    return next(co, n)[1]
+end
 
+function getbasis(l::Array{Sym, 1}, level::Int, bound::Int)
+    n = length(l)
 
+    # first treat zero elements in l as special case
+    zeros = find(x -> x == 0, l)
+    if length(zeros) == length(l)
+        return eye(n)
+    end
+
+    if length(zeros) > 0
+        ex = findin(l, 0)
+        b = getbasis(deleteat!(l, ex), level, bound) # basis for nonzero numbers
+        for pos in ex
+            # TODO: insert new dimensions
+        end
+        b = 0 # TODO: add unit vectors at the zero positions
+
+        return b
+    end
+
+    # now we assume that l is a list of nonzero real numbers
+    c1 = [convergent(x, level) for x in l]
+    c2 = [convergent(x, level+1) for x in l]
+
+    println("c1: ", c1)
+
+    e = [1/denominator(x1*x2) for (x1, x2) in zip(c1, c2)]
+    # cfrac theorem says: | log[i] - c1[i] | <= e[i]
+
+    # refine the approximation such that all errors are smaller than the smallest
+    # element of l in absolute value *)
+
+    lev = level + 1
+    while length(filter(x -> maximum(e) >= abs(x), c1)) > 0 && lev < level + 5
+        ex = findin(e, maximum(e)) # indices with greates error
+
+        lev++
+        for i in 1:length(ex)
+            j = ex[i]
+            c1[j] = c2[j]
+            c2[j] = convergent(l[j], lev)
+            e[j] = c1[j] == l[j] ? 0 : 1/denominator(c1[j]*c2[j])
+        end
+    end
+
+    # now: max e[i] < min |c1[i]|
+
+    # this bound guarantees that generators whose norm is at most bound will
+    # appear in the LLL-reduced basis
+    minc1 = minimum([abs(c) for c in c1])
+    maxe = maximum([abs(c) for c in e])
+    d = Int(ceil(float(((length(c1) - 1)/2)*bound/(minc1 - maxe))))
+
+    identity = eye(Int, n)
+    println(typeof(identity))
+    println(c1)
+    row = c1 * d
+    println(row)
+    b = hcat(identity, row)
+    println(typeof(b))
+    b = lll(b)
+    println("lll: ", b, " type: ", typeof(b))
+    # Vectors whose right hand side is greater than the errors permit can be 
+    #   discarded; they cannot correspond to integer relations.
+    b = [b[i,:] for i in 1:size(b)[1] if (abs(b[i,:][end]) <= d*abs(dot(b[i,1:n],e)))]
+    println("lll: ", b, " type: ", typeof(b))
+    # b = filter(x -> ))
+
+    # all remaining vectors are returned as candidates
+    return b[:,1:end-1]
+end
+
+function clear_denom(a::Matrix{Rational{Int64}})
+    d = lcm(denominator.(a))
+    println("d: $(d)")
+    println(a)
+    return a*d, d
+end
+
+function lll(a::Matrix{Rational{Int64}})
+    m, d = clear_denom(a)
+    m = Int.(a)
+    println(typeof(m))
+    m = Matrix{Int}(Nemo.lll(matrix(FlintZZ, m)))
+    return m // d
+end
 
 z1 = Sym((1+sqrt(Sym(5)))/2)
 z2 = Sym((1-sqrt(Sym(5)))/2)
 z3 = Sym(-1)
 
-findrelations([z1,z2,z3])
+e1 = Sym(2)
+e2 = Sym(1/Sym(2))
+
+findrelations([e1,e2])
