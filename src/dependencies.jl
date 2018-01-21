@@ -3,6 +3,8 @@ using Nemo
 using ContinuedFractions
 using ArraySlices # used for convenience functions for iterating rows of matrices
 
+include("utils.jl")
+
 # represents the algebraic number in the field Q[theta] given by c0 + c_1 theta + ...
 struct AlgebraicNumber
     theta::Sym
@@ -292,6 +294,43 @@ end
 lll(m::Matrix{Int}) = Matrix{Int}(Nemo.lll(matrix(FlintZZ, m)))
 
 hnf_with_transform(m::Matrix{Int}) = Matrix{Int}.(Nemo.hnf_with_transform(matrix(FlintZZ, m)))
+
+################################################################################
+
+function ideal(m::Matrix{Int}, x::Array{Sym,1})
+    if isempty(m)
+        return []
+    end
+
+    y = symset("y", length(x))
+    base = []
+    for i in 1:nrows(m)
+        r = 1
+        for j in 1:ncols(m)
+            exp = m[i,j]
+            v = exp > 0 ? x[j] : y[j]
+            r *= v^abs(exp)
+        end
+        base = [base; r]
+    end
+
+    inv = [xi*yi - 1 for (xi,yi) in zip(x,y)]
+    base = [base; inv]
+    base = eliminate(base, y, x)
+
+    return base
+    # base = Table[ 
+    #     Product[
+    #       e = b[[i,j]]; If[e > 0, x, y][j]^Abs[e]
+    #       , {j, 1, Length[b[[i]]]}] - 1,
+    #     {i, 1, Length[b]}
+    #   ];
+    #   base = Join[base, Table[x[j]*y[j] - 1, {j, 1, Length[First[b]]}]];
+    #   base = EliminationIdeal[base, Table[y[i], {i, 1, Length[First[b]]}], Table[x[i], {i, 1, Length[First[b]]}]];
+    
+    #   Return[base];
+end
+
 
 z1 = Sym((1+sqrt(Sym(5)))/2)
 z2 = Sym((1-sqrt(Sym(5)))/2)
