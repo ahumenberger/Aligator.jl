@@ -1,7 +1,7 @@
 using SymPy
 using Nemo
 using ContinuedFractions
-using ArraySlices # used for convenience functions for iterating rows of matrices
+# using ArraySlices # used for convenience functions for iterating rows of matrices
 
 include("utils.jl")
 
@@ -126,7 +126,7 @@ function findrelations(roots::Array{Sym,1})
     println("ABC: ", a)
     relog = [SymPy.real(SymPy.log(Sym(x))) for x in a]
     imlog = [SymPy.imag(SymPy.log(Sym(x))) for x in a]
-    imlog = [imlog; 2*SymPy.pi]
+    imlog = [imlog; Sym(2)*SymPy.pi]
 
     println(relog)
     println(imlog)
@@ -155,14 +155,15 @@ function findrelations(roots::Array{Sym,1})
     m = eye(Int, length(a)) # identity matrix
 
     # successively refine the approximation until only valid generators are returned
-    level = Int(ceil(N(log(bound, 2)) + 1))
+    level = Int(ceil(N(log2(bound)) + 1))
     while prod([check_relation(a, m[i,:]) for i in 1:size(m)[1]]) == 0
         println("level: $(level), bound: $(bound)")
         println(relog)
         m1 = getbasis(relog, level, bound)
-        println("basis: ", m1)
+        println("getbasis1: ", m1)
         println(imlog)
         m2 = getbasis(imlog, level, bound)
+        println("getbasis2: ", m2[:,1:end-1])        
         # m2 = view(m2, :, 1:size(m2)-1)
         println("ABNCD")
         println(m2)
@@ -172,10 +173,11 @@ function findrelations(roots::Array{Sym,1})
     return m
 end
 
-check_relation(a::Array{Sym, 1}, e::Array{Int, 1}) = prod([ax^ex for (ax, ex) in zip(a,e)]) == 1
+check_relation(a::Array{Sym, 1}, e::Array{BigInt, 1}) = prod([ax^ex for (ax, ex) in zip(a,e)]) == 1
 
 function convergent(x, n)
-    cf = ContinuedFraction(Rational(x))
+    # TODO: is precision of 60 enough>
+    cf = ContinuedFraction(N(x, 60))
     co = convergents(cf)
     res = next(co, n)[1]
     println("type: ", typeof(res))
@@ -203,6 +205,7 @@ function getbasis(l::Array{Sym, 1}, level::Int, bound::Int)
         println("nonzero elements:")
         println(ll)
         b = getbasis(ll, level, bound) # basis for nonzero numbers
+        println("basis for nonzero: ", b)
         println(nrows(b))
         zvec = zeros(nrows(b), 1)
         println(zvec)
@@ -212,17 +215,21 @@ function getbasis(l::Array{Sym, 1}, level::Int, bound::Int)
         end
         # add unit vectors at the zero positions
         b = vcat(b, eye(n)[zpos,:])
-
+        println("at least one zero: ", b)
         return Matrix{Int}(b)
     end
+
+    println("========== Now for nonzero: $(l) | $(level) | $(bound)")
 
     # now we assume that l is a list of nonzero real numbers
     c1 = [convergent(x, level) for x in l]
     c2 = [convergent(x, level+1) for x in l]
 
     println("c1: ", c1)
+    println("c2: ", c2)
 
-    e = [1/denominator(x1*x2) for (x1, x2) in zip(c1, c2)]
+    e = [1//denominator(x1*x2) for (x1, x2) in zip(c1, c2)]
+    println("e: ", e)
     # cfrac theorem says: | log[i] - c1[i] | <= e[i]
 
     # refine the approximation such that all errors are smaller than the smallest
@@ -247,15 +254,17 @@ function getbasis(l::Array{Sym, 1}, level::Int, bound::Int)
     # appear in the LLL-reduced basis
     minc1 = minimum([abs(c) for c in c1])
     maxe = maximum([abs(c) for c in e])
-    d = Int(ceil(float(((length(c1) - 1)/2)*bound/(minc1 - maxe))))
-
+    println("min: ", minc1)
+    println("max: ", maxe)
+    d = BigInt(ceil(N(2^((length(c1) - 1)/2)*bound/(minc1 - maxe))))
+    println("Integer d: ", d)
     identity = eye(Int, n)
     println(typeof(identity))
     println(c1)
     row = c1 * d
     println(row)
     b = hcat(identity, row)
-    println(typeof(b))
+    println("before lll: ", b)
     b = lll(b)
     println("lll: ", b, " type: ", typeof(b))
     # Vectors whose right hand side is greater than the errors permit can be 
@@ -276,22 +285,27 @@ function getbasis(l::Array{Sym, 1}, level::Int, bound::Int)
     return Matrix{Int}(res[:,1:end-1])
 end
 
-function clear_denom(a::Matrix{Rational{Int64}})
+function clear_denom(a::Matrix{Rational{BigInt}})
     d = lcm(denominator.(a))
-    println("d: $(d)")
+    println("d: $(d) | $(typeof(d))")
     println(a)
+    println("restult: ", a*d)
     return a*d, d
 end
 
-function lll(a::Matrix{Rational{Int64}})
+function lll(a::Matrix{Rational{BigInt}})
+    println("beginning of lll: ", a)
     m, d = clear_denom(a)
-    m = Int.(a)
+    println("matrix: ", m)
+    m = numerator.(m)
+    println("matrix2: ", m)
     println(typeof(m))
-    m = Matrix{Int}(Nemo.lll(matrix(FlintZZ, m)))
+    m = Matrix{BigInt}(Nemo.lll(matrix(FlintZZ, m)))
+    println("right after lll: ", m)
     return m // d
 end
 
-lll(m::Matrix{Int}) = Matrix{Int}(Nemo.lll(matrix(FlintZZ, m)))
+lll(m::Matrix{Int}) = Matrix{BigInt}(Nemo.lll(matrix(FlintZZ, m)))
 
 hnf_with_transform(m::Matrix{Int}) = Matrix{Int}.(Nemo.hnf_with_transform(matrix(FlintZZ, m)))
 
@@ -316,7 +330,7 @@ function ideal(m::Matrix{Int}, x::Array{Sym,1})
 
     inv = [xi*yi - 1 for (xi,yi) in zip(x,y)]
     base = [base; inv]
-    base = eliminate(base, y, x)
+    base = eliminate(base, [y])
 
     return base
     # base = Table[ 
@@ -338,7 +352,8 @@ z3 = Sym(-1)
 
 e1 = Sym(2)
 e2 = Sym(1/Sym(2))
+e3 = Sym(1)
 
-result = findrelations([e1,e2])
+result = findrelations([e1,e2,e3])
 println("Relations: ")
 println(result)
