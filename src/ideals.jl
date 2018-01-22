@@ -1,6 +1,9 @@
 using Singular
 using SymPy
 
+import Singular.PolynomialRing
+import Singular.QQ
+
 # const Ideal = Singular.sideal
 
 function Ideal(basis::Array{Sym, 1})
