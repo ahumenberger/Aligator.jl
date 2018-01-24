@@ -1,4 +1,3 @@
-using PyCall
 
 function symset(v::String, j::Int64)
     return [Sym("$v$i") for i in 1:j]

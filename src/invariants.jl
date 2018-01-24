@@ -1,9 +1,9 @@
-include("recurrence.jl")
-include("dependencies.jl")
 
 abstract type Loop end
 
-const LoopBody = Array{Recurrence,1}
+const LoopBody = Array{<:Recurrence,1}
+
+type EmptyLoop <: Loop end
 
 struct SingleLoop <: Loop
     body::LoopBody
@@ -13,8 +13,8 @@ end
 
 struct MultiLoop <: Loop
     branches::Array{SingleLoop}
-    cond::Expr
-    init
+    # cond::Expr
+    # init
 end
 
 Base.length(ideal::Singular.sideal) = ngens(ideal)
@@ -22,6 +22,10 @@ Base.start(ideal::Singular.sideal) = 1
 Base.next(ideal::Singular.sideal, state) = (ideal[state], state+1)
 Base.done(ideal::Singular.sideal, state) = state > ngens(ideal)
 Base.eltype(::Singular.sideal) = Singular.spoly
+
+function invariants(loop::MultiLoop)
+    error("Multi-path loops are not implemented yet")
+end
 
 function invariants(loop::SingleLoop)
     closedforms = [closedform(rec) for rec in loop.body]
@@ -78,57 +82,8 @@ function init_variables(expr::Sym, f::SymFunction)
     return subs(expr, dict), vars
 end
 
-h = SymFunction("h")
-g = SymFunction("g")
+# h = SymFunction("h")
+# g = SymFunction("g")
 
-r1 = CFiniteRecurrence([Sym(-2),Sym(1)], h, n)
-r2 = CFiniteRecurrence([1/Sym(-2),Sym(1)], g, n)
-
-println(r1)
-println(r2)
-
-invariants(SingleLoop(LoopBody([r1,r2])))
-
-# abstract type RawProgram end
-
-# const RawBody = Dict{Sym, Sym} # couple of assignments
-
-# struct RawLoop
-#     body::Array{Union{RawBody, RawLoop}, 1}
-# end
-# struct RawCond
-#     body::Array{Union{RawBody, RawLoop}, 1}
-# end
-
-# function flatten(loop::RawLoop)
-    
-# end
-
-
-# while true
-#     s5
-#     if b1
-#         s4
-#     end
-#     s3
-#     if b2
-#         s2
-#     end
-#     s1
-# end
-
-# while true
-#     if b1
-#         s5
-#         s4
-#         s3
-#     end
-#     if not b1
-#         s5
-#         s3
-#     end
-#     while true
-#         s2
-#     end
-#     s1
-# end
+# r1 = CFiniteRecurrence([Sym(-2),Sym(1)], h, n)
+# r2 = CFiniteRecurrence([1/Sym(-2),Sym(1)], g, n)

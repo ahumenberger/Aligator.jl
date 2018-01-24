@@ -1,5 +1,3 @@
-using Singular
-using SymPy
 
 import Singular.PolynomialRing
 import Singular.QQ
@@ -118,10 +116,10 @@ end
 map_fn(key, fn_map) = haskey(fn_map, key) ? fn_map[key] : Symbol(key)
 map_var(varmap, key) = get(varmap, key, key)
 
-@syms x y z
-expr = x + y * z
+# @syms x y z
+# expr = x + y * z
 
-b = [x+y, x*2z, z^2-y]
+# b = [x+y, x*2z, z^2-y]
 
 # R, vars = PolynomialRing(QQ, ["x1", "y1", "z1"])
 

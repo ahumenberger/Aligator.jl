@@ -1,9 +1,3 @@
-using SymPy
-using Nemo
-using ContinuedFractions
-
-include("utils.jl")
-include("ideals.jl")
 
 import Base.Matrix
 
@@ -345,14 +339,14 @@ end
 
 # function seq2poly()
 
-z1 = Sym((1+sqrt(Sym(5)))/2)
-z2 = Sym((1-sqrt(Sym(5)))/2)
-z3 = Sym(-1)
+# z1 = Sym((1+sqrt(Sym(5)))/2)
+# z2 = Sym((1-sqrt(Sym(5)))/2)
+# z3 = Sym(-1)
 
-e1 = Sym(2)
-e2 = Sym(1/Sym(2))
-e3 = Sym(1)
+# e1 = Sym(2)
+# e2 = Sym(1/Sym(2))
+# e3 = Sym(1)
 
-result = findrelations([e1,e2,e3])
-println("Relations: ")
-println(result)
+# result = findrelations([e1,e2,e3])
+# println("Relations: ")
+# println(result)

@@ -1,6 +1,3 @@
-include("utils.jl")
-
-using SymPy
 
 import Base.show
 import SymPy.solve
@@ -131,17 +128,17 @@ function closedform(r::Recurrence)
     return CFiniteClosedForm(r.f, r.n, exp, coeff)
 end
 
-@syms n
-f = SymFunction("F")
+# @syms n
+# f = SymFunction("F")
 
-rec = CFiniteRecurrence([Sym(-1),Sym(-1),Sym(1)], f, n)
+# rec = CFiniteRecurrence([Sym(-1),Sym(-1),Sym(1)], f, n)
 
-r2 = CFiniteRecurrence([Sym(-2),Sym(1)], f, n)
+# r2 = CFiniteRecurrence([Sym(-2),Sym(1)], f, n)
 
-closedform(rec)
+# closedform(rec)
 
-println("order: ", order(rec))
+# println("order: ", order(rec))
 
-inhom = CFiniteRecurrence([Sym(-1),Sym(-1),Sym(1)], f, n, 2)
-is_homogeneous(inhom)
-homogeneous(inhom)
+# inhom = CFiniteRecurrence([Sym(-1),Sym(-1),Sym(1)], f, n, 2)
+# is_homogeneous(inhom)
+# homogeneous(inhom)

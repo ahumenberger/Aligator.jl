@@ -1,9 +1,3 @@
-using SymPy
-
-include("utils.jl")
-include("recurrence.jl")
-
-#-------------------------------------------------------------------------------
 
 struct ExprAssign
     lhs::Symbol
@@ -103,7 +97,7 @@ end
 
 #-------------------------------------------------------------------------------
 
-function aligator(str::String)
+function extract_loop(str::String)
     loops = extract_assign(parse(str), 0)
     if isa(loops, Array{ExprAssign,1})
         # single-path loop
@@ -114,43 +108,12 @@ function aligator(str::String)
     end
 
     recs = [recurrence.(symbolic(loop, Sym("n_$(i)"))) for (i, loop) in enumerate(loops)]
-    return recs
+    loops = SingleLoop.(LoopBody.(recs))
+    if length(loops) == 0
+        return EmptyLoop()
+    elseif length(loops) == 1
+        return loops[1]
+    else
+        return MultiLoop(loops)
+    end
 end
-
-#-------------------------------------------------------------------------------
-
-loop = """
-    while true
-        if y > 1
-            x = x + 1
-            y = y - 1
-            z = 1
-            a = b
-        elseif t > 1
-            x1 = x1 + 1
-            y1 = y1 - 1
-            z1 = 1
-            a1 = b1
-        else
-            abc = a2
-        end
-    end
-"""
-
-loop2 = """
-    while true
-        x = 1/2*x + 1
-        y = y - 1
-        z = 1
-        a = b
-    end
-"""
-
-loop3 = """
-    while true
-        x = 1/2*x
-        y = 2y
-    end
-"""
-
-aligator(loop3)
