@@ -41,35 +41,17 @@ function invariants(loop::SingleLoop)
         println(cf)
     end
     # TODO: handle factorials
-    ideal = [Sym(string(Sym(cf.f.x))) - init_variables(polynomial(cf), cf.f)[1] for cf in closedforms]
-    vars = union(variables(ideal), string.(expv))
-    println("Variables: ", vars)
+    basis = [Sym(string(Sym(cf.f.x))) - init_variables(polynomial(cf), cf.f)[1] for cf in closedforms]
+    # vars = union(variables(ideal), string.(expv))
+    # println("Variables: ", vars)
     # init_variables(ideal, closedforms[1].f)
     # println(polynomial(closedforms[1]))
     # cforms, varmap = Ideal(ideal)
     algdep = dependencies(exp, variables = expv)
+    sideal = Ideal(basis)
 
-    # println("Closed forms: ", cforms)
-    println("Algebraic dependencies: ", algdep)
-    println(collect(algdep))
-    gen_algdep = collect(algdep)
-    # cgens = Singular.gens(base_ring(cforms))
-    # agens = Singular.gens(base_ring(algdep))
-    # gens = union(cgens, agens)
-    # sexpv = string.(expv)
-    vars = filter(x -> !in(x, expv), variables(ideal))
-    fvars = [expv; vars]
-    R, pvars = PolynomialRing(QQ, string.(fvars))
-    varmap = Dict(zip(expv, pvars))
-    # basis = sym2spoly(ideal, varmap)
-    # println("Basis: ", basis)
-    ideal = Singular.Ideal(R, gen_algdep...)
-    println("Ideal: ", ideal)
-    println("Varmap: ", varmap)
-    # println("Algdep in bigger ring: ", ideal)
-    elimvars = [varmap[v] for v in expv]
-    # println("GROEBNER: ", Singular.eliminate(ideal, prod(elimvars)))
-    # println("Dependencies: ", algdep)
+    # TODO: some kind of map needed to combine algdep and sideal
+    error("Addition of two ideals with different base rings is not implemented yet.")
 end
 
 function init_variables(expr::Sym, f::SymFunction)
