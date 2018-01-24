@@ -42,14 +42,11 @@ function extract_assign(expr::Expr, level)
 end
 
 function flatten(loops)
-    # println(loops |> )
-    # just do some simple flattening
     nest = [loops]
     flat = Array{Array{ExprAssign,1},1}[]
     while !isempty(nest)
         nest = nest |> Iterators.flatten |> collect
         nest = reverse(nest)
-        println("Nest: ", nest)
         if isa(nest[1], ExprAssign)
             flat = [flat; [[pop!(nest)]]]
         else            
@@ -108,7 +105,6 @@ end
 
 function aligator(str::String)
     loops = extract_assign(parse(str), 0)
-    println("Type: ", typeof(loops))
     if isa(loops, Array{ExprAssign,1})
         # single-path loop
         loops = [loops]
@@ -150,4 +146,11 @@ loop2 = """
     end
 """
 
-aligator(loop2)
+loop3 = """
+    while true
+        x = 1/2*x
+        y = 2y
+    end
+"""
+
+aligator(loop3)
