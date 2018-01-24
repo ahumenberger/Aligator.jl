@@ -3,6 +3,9 @@ include("utils.jl")
 using SymPy
 
 import Base.show
+import SymPy.solve
+import SymPy.coeff
+import SymPy.degree
 
 abstract type Recurrence end
 
@@ -18,7 +21,7 @@ CFiniteRecurrence(coeffs::Array{Sym}, f::SymFunction, n::Symbol) = CFiniteRecurr
 
 abstract type ClosedForm end
 
-struct CFiniteClosedForm <: ClosedForm
+mutable struct CFiniteClosedForm <: ClosedForm
     f::SymFunction
     n::Sym
     exp::Array{Sym}
@@ -28,12 +31,12 @@ end
 
 CFiniteClosedForm(f::SymFunction, n::Sym, exp::Array{Sym}, coeff::Array{Sym}) = CFiniteClosedForm(f, n, exp, coeff, [])
 
-function expr(cf::CFiniteClosedForm)
+function poly(cf::CFiniteClosedForm)
     return sum([ex^cf.n * c for (ex, c) in zip(cf.exp, cf.coeff)])
 end
 
 function Base.show(io::IO, cf::CFiniteClosedForm)
-    print(io, cf.f(cf.n), " Exp: $(cf.exp) Coeff: $(cf.coeff)\n", sympy["pretty"](expr(cf)))
+    print(io, cf.f(cf.n), " Exp: $(cf.exp) Coeff: $(cf.coeff)\n", sympy["pretty"](poly(cf)))
 end
 
 struct HyperClosedForm <: ClosedForm
@@ -44,7 +47,8 @@ end
 
 function polynomial(cf::CFiniteClosedForm) 
     if !isempty(cf.expvars)
-        return cf.expvars .* cf.coeff
+        return (cf.expvars .* cf.coeff)[1]
+        # return dot(cf.expvars, cf.coeff)
     else
         Error("No replacement variables for exponentials specified.")
     end
@@ -122,7 +126,7 @@ function closedform(r::Recurrence)
     println("sol: ", sol)
     exp = [z for (z, _) in roots]
     println("exp: ", exp)
-    coeff = [SymPy.coeff(sol, z^r.n) for z in exp]
+    coeff = [SymPy.coeff(sol, simplify(z^r.n)) for z in exp]
     println("coeff: ", coeff)
     return CFiniteClosedForm(r.f, r.n, exp, coeff)
 end

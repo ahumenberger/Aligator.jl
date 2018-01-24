@@ -1,7 +1,6 @@
 using SymPy
 using Nemo
 using ContinuedFractions
-# using ArraySlices # used for convenience functions for iterating rows of matrices
 
 include("utils.jl")
 include("ideals.jl")
@@ -324,9 +323,14 @@ function ideal(m::Matrix{BigInt}, x::Array{Sym,1})
     inv = [xi*yi - 1 for (xi,yi) in zip(x,y)]
     base = [base; inv]
     println(base)
-    base = eliminate(base, y)
+    fvars = [x; y]
+    R, rvars = PolynomialRing(QQ, string.(fvars))
+    dict = Dict(zip(fvars, rvars))
+    rbase = sym2spoly(base, dict)
+    ideal = Singular.Ideal(R, rbase...)
+    ideal = Singular.eliminate(ideal, prod(rvars[length(x)+1:end]))
 
-    return base
+    return ideal
 end
 
 function dependencies(roots::Array{Sym,1}; variables=Sym[])
