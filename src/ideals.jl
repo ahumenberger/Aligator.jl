@@ -54,8 +54,8 @@ function replace_sympy(ex; values=Dict(), fns=Dict())
     Expr(:call, map_fn(fns_map, fn), [replace_sympy(a, values=values) for a in args(ex)]...)
 end
 
-function sym2spoly(b::Array{Sym, 1})
-    fvars = union(free_symbols.(b)...)
+function sym2spoly(b::Array{Sym, 1}; vars = Sym[])
+    fvars = union(free_symbols.(b)..., vars)
     svars = string.(fvars)
     R, pvars = PolynomialRing(QQ, svars)
     dict = Dict(zip(fvars, pvars))
@@ -63,18 +63,14 @@ function sym2spoly(b::Array{Sym, 1})
     return R, basis, dict
 end
 
-function sym2spoly(p::Sym)
-    fvars = free_symbols(p)
-    svars = string.(fvars)
-    R, pvars = PolynomialRing(QQ, svars)
-    dict = Dict(zip(fvars, pvars))
-    return R, pvars, eval(replace_sympy(p, values = dict))
+function sym2spoly(p::Sym; vars = Sym[])
+    sym2spoly([p], vars=vars)[1]
 end
 
 #-------------------------------------------------------------------------------
 
-function Ideal(basis::Array{Sym, 1})
-    R, sbasis, varmap = sym2spoly(basis)
+function Ideal(basis::Array{Sym, 1}; vars = Sym[])
+    R, sbasis, varmap = sym2spoly(basis, vars=vars)
     return Singular.Ideal(R, sbasis...), varmap
 end
 

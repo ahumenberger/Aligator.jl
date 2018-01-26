@@ -31,7 +31,6 @@ function invariants(loop::SingleLoop)
     closedforms = [closedform(rec) for rec in loop.body]
     exp = collect(Set(Iterators.flatten([exponentials(cf) for cf in closedforms])))
     println("exp: ", exp)
-    # expvars = [uniquevar() for _ in exponentials]
     expv = symset("v", length(exp))
     dict = Dict(zip(exp, expv))
     println(dict)    
@@ -42,16 +41,17 @@ function invariants(loop::SingleLoop)
     end
     # TODO: handle factorials
     basis = [Sym(string(Sym(cf.f.x))) - init_variables(polynomial(cf), cf.f)[1] for cf in closedforms]
-    # vars = union(variables(ideal), string.(expv))
-    # println("Variables: ", vars)
-    # init_variables(ideal, closedforms[1].f)
-    # println(polynomial(closedforms[1]))
-    # cforms, varmap = Ideal(ideal)
-    algdep = dependencies(exp, variables = expv)
-    sideal = Ideal(basis)
 
-    # TODO: some kind of map needed to combine algdep and sideal
-    error("Addition of two ideals with different base rings is not implemented yet.")
+    algdep = dependencies(exp, variables = expv)
+    vars = union(free_symbols.(basis)..., expv)
+    sideal, varmap = Ideal(basis, vars=vars)
+
+    R = base_ring(sideal)
+    basis = [imap(g, R) for g in algdep]
+    algdep = Singular.Ideal(R, basis)
+
+    sexpv = [varmap[v] for v in expv]
+    return Singular.eliminate(sideal + algdep, prod(sexpv))
 end
 
 function init_variables(expr::Sym, f::SymFunction)
@@ -63,9 +63,3 @@ function init_variables(expr::Sym, f::SymFunction)
     dict = Dict(zip(ffns, vars))
     return subs(expr, dict), vars
 end
-
-# h = SymFunction("h")
-# g = SymFunction("g")
-
-# r1 = CFiniteRecurrence([Sym(-2),Sym(1)], h, n)
-# r2 = CFiniteRecurrence([1/Sym(-2),Sym(1)], g, n)
