@@ -41,8 +41,9 @@ function flatten(loops)
     while !isempty(nest)
         nest = nest |> Iterators.flatten |> collect
         nest = reverse(nest)
-        if isa(nest[1], ExprAssign)
-            flat = [flat; [[pop!(nest)]]]
+        if isa(nest[1], Array{ExprAssign,1}) && isa(nest[2], Array{ExprAssign,1})
+            flat = [flat; nest]
+            return flat
         else            
             flat = [flat; [pop!(nest)]]
         end
