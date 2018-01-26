@@ -9,6 +9,7 @@ using SymPy
 using Nemo
 using Singular
 using ContinuedFractions
+using Cxx
 
 include("utils.jl")
 include("recurrence.jl")
@@ -16,6 +17,7 @@ include("invariants.jl")
 include("parse_julia.jl")
 include("dependencies.jl")
 include("ideals.jl")
+include("singular_imap.jl")
 
 #-------------------------------------------------------------------------------
 
