@@ -321,6 +321,10 @@ function ideal(m::Matrix{BigInt}, x::Array{Sym,1})
 end
 
 function dependencies(roots::Array{Sym,1}; variables=Sym[])
+    println("Computing dependencies between ", roots)
+    if length(roots) < 2
+        return nothing
+    end
     lattice = findrelations(roots)
     if isempty(variables)
         variables = symset("v", length(lattice))

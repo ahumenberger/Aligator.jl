@@ -39,7 +39,7 @@ function replace_sympy(ex; values=Dict(), fns=Dict())
     fn = funcname(ex)
     
     if fn == "Symbol"
-        println(typeof(ex))
+        # println(typeof(ex))
         return map_var(vals_map, ex)
     elseif fn == "Function"
         return Symbol("v_$(ex)")

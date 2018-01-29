@@ -63,8 +63,48 @@ loop3 = """
     end
 """
 
-aligator(loop3)
+euclidex = """
+    while a != b
+        if a > b
+            a = a - b
+            p = p - q
+            r = r - s
+        else
+            q = q - p
+            b = b - a
+            s = s - r
+        end
+    end
+"""
 
+fermat = """
+    while r != 0
+        if r > 0
+            r = r - v
+            v = v + 2
+        else
+            r = r + u
+            u = u + 2
+        end
+    end
+"""
+
+loop4 = """
+    while a != b
+        if a > b
+            a = a - b
+            p = p - q
+            r = r - s
+        end
+    end
+"""
+
+# aligator(loop3)
+
+# extract_loop(loop)
+
+l = aligator(loop4)
+println(l)
 # package code goes here
 
 end # module

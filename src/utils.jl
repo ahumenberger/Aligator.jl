@@ -1,6 +1,6 @@
 
 function symset(v::String, j::Int64)
-    return [Sym("$v$i") for i in 1:j]
+    return Sym[Sym("$v$i") for i in 1:j]
 end
 
 unique_var_count = 0
