@@ -38,7 +38,15 @@ function ==(I::Singular.sideal, J::Singular.sideal)
     return true
  end
 
+function invariants(loop::SingleLoop)
+    cfs = rec_solve(loop.body)
+    invariants(cfs, loop.vars, loop.lc)
+end
+
 function invariants(loop::MultiLoop)
+
+    cfslist = [rec_solve(sl.body) for sl in loop.branches]
+
     index = 0
     vars = [Sym("$(v)_0") for v in loop.vars]
     R, _ = PolynomialRing(QQ, string.(union(loop.vars, vars)))
@@ -46,8 +54,8 @@ function invariants(loop::MultiLoop)
     J = Nullable{sideal}()
     while JJ == nothing || I != JJ
         I = JJ
-        for l in loop.branches
-            J = invariants(l, precond=Nullable{sideal}(J), index=index)
+        for (i, l) in enumerate(cfslist)
+            J = invariants(l, loop.vars, loop.branches[i].lc, precond=Nullable{sideal}(J), index=index)
             println("New Ideal: ", J)
             index += 1
         end
@@ -65,9 +73,9 @@ function invariants(loop::MultiLoop)
     JJ
 end
 
-function invariants(loop::SingleLoop; precond::Nullable{sideal}=Nullable{sideal}(), index::Int=0)
-    println("Invariants: ", loop)
-    cfs = closedform.(loop.body)
+function invariants(cfs::Array{<: ClosedForm}, loopvars::Array{Sym,1}, lc::Sym; precond::Nullable{sideal}=Nullable{sideal}(), index::Int=0)
+    println("Invariants: ", cfs)
+    # cfs = closedform.(loop.body)
     exp = union(exponentials.(cfs)...)
     exp = filter(x -> x!=Sym(1), exp)
     # TODO: Make sure that these variables are unique
@@ -76,29 +84,32 @@ function invariants(loop::SingleLoop; precond::Nullable{sideal}=Nullable{sideal}
     emap = Dict(zip(exp, expv))
     expvars!.(cfs, emap)
 
-    polyfn(cf) = Sym(string(Sym(cf.f.x))) - replace_init_vars(polynomial(cf), cf.f, index)[1]
+    polyfn(cf) = Sym(string(Sym(cf.f.x))) - replace_init_vars(polynomial(cf), index)[1]
     basis = polyfn.(cfs)
     # println("Basis (before preprocessing): ", basis)
 
-    initvars = [Sym("$(v)_0") for v in loop.vars]
-    midvars = [Sym("$(v)_$(index)") for v in loop.vars]
+    initvars = [Sym("$(v)_0") for v in loopvars]
+    midvars = [Sym("$(v)_$(index)") for v in loopvars]
     vars = union(free_symbols.(basis)...)
-    newvars = [Sym(string(v, "_", index+1)) for v in loop.vars]
-    dict = Dict(zip(loop.vars, newvars))
+    newvars = [Sym(string(v, "_", index+1)) for v in loopvars]
+    dict = Dict(zip(loopvars, newvars))
     basis = [b |> subs(dict) for b in basis]
     # println("Basis (in invariatns): ", basis)
     I, varmap = Ideal(basis, vars=union(vars, initvars))
     if !isnull(precond)
         J = imap(get(precond), base_ring(I))
+        println("Preconditions: ", get(precond))
+        println("Mapped preconditions: ", J)
+        println("The ideal: ", I)
         I = I + J
     end
-    elim = [get(varmap, loop.lc, 1)]
+    elim = [get(varmap, lc, 1)]
     if !isnull(precond)
         elim = union(elim, [get(varmap, v, 1) for v in midvars])
     end
     # elim = union(elim, )
     if isempty(exp)
-        # println("Eliminate Inv: ", elim)
+        println("Eliminate Inv: ", elim)
         if elim != [1]
             I = Singular.eliminate(I, prod(elim))
         end
@@ -126,12 +137,12 @@ function imap(I::sideal, R::Singular.PolyRing)
     Singular.Ideal(R, basis)
 end
 
-function replace_init_vars(expr::Sym, f::SymFunction, index::Int=0)
+function replace_init_vars(expr::Sym, index::Int=0)
     w0   = Wild("w0")
     fns  = Sym.(collect(atoms(expr, AppliedUndef)))
-    args = [Int(match(f(w0), fn)[w0]) for fn in fns]
-    ffns = [f(x) for x in args]
-    vars = [Sym("$(string(Sym(f.x)))_$(Int(x)+index)") for x in args]
-    dict = Dict(zip(ffns, vars))
+    # args = [Int(match(f(w0), fn)[w0]) for fn in fns]
+    # ffns = [f(x) for x in args]
+    vars = [Sym("$(string(Sym(func(fn).x)))_$(Int(args(fn)[1])+index)") for fn in fns]
+    dict = Dict(zip(fns, vars))
     return subs(expr, dict), vars
 end

@@ -11,6 +11,7 @@ using Singular
 using ContinuedFractions
 using Cxx
 
+
 include("utils.jl")
 include("recurrence.jl")
 include("invariants.jl")
@@ -23,6 +24,9 @@ include("singular_imap.jl")
 
 function aligator(str::String)
     loop = extract_loop(str)
+    # if isa(loop, SingleLoop)
+    #     println(rec_solve(loop.body))
+    # end
     invs = invariants(loop)
     return invs
 end
@@ -89,6 +93,13 @@ fermat = """
     end
 """
 
+notfermat = """
+    while r != 0
+            r = r - v
+            v = v + 2
+    end
+"""
+
 loop4 = """
     while a != b
         if a > b
@@ -99,11 +110,25 @@ loop4 = """
     end
 """
 
+wensley = """
+    while d>= E
+	    if P < a+b
+            b = b/2
+            d = d/2
+        else
+            a = a+b
+            y = y+d/2
+            b = b/2
+            d = d/2
+        end
+    end
+"""
+
 # aligator(loop3)
 
 # extract_loop(loop)
 
-l = aligator(loop4)
+l = aligator(notfermat)
 println(l)
 # package code goes here
 

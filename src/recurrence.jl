@@ -3,6 +3,7 @@ import Base.show
 import SymPy.solve
 import SymPy.coeff
 import SymPy.degree
+import SymPy.subs
 
 abstract type Recurrence end
 
@@ -105,17 +106,28 @@ end
 
 function rewrite(d::Dict{Sym,Sym})
     # TODO: successively apply rewrite rules do values of dict
-    d
+    dd = Dict{Sym,Sym}()
+    while dd != d
+        dd = d
+        for (k, v) in d
+            for (g, h) in dd
+                dd[g] = h |> subs(k, v)
+            end
+        end
+    end
+    dd
 end
 
 function closedform(orig::Recurrence)
-    # println("Original: ", orig)
+    println("Original: ", orig)
     r = homogeneous(orig)
+    println("Homogenous: ", r)
+    
 
     shift = order(r) - order(orig)
     rh = rhs(orig)
     init = Dict{Sym,Sym}([(orig.f(i), rh |> SymPy.replace(orig.n, i-1)) for i in 1:shift])
-    init = rewrite(init)
+    # init = rewrite(init)
 
     println("Init: ", init)
 
@@ -139,9 +151,20 @@ function closedform(orig::Recurrence)
     sol = solve(system, unknowns)
     println("Solution: ", sol)
     sol = ansatz |> subs(sol)
+    
     if !isempty(init)
-        sol = sol |> subs(init)
+        tmp = nothing
+        while true
+            tmp = sol |> subs(init)
+            if tmp == sol
+                break
+            end
+            sol = tmp
+            println("tmp: ", tmp)
+        end
+        sol = simplify(tmp)
     end
+    
     println("roots: ", roots)
     println("sol: ", sol)
     exp = sort([z for (z, _) in roots], rev=true)
@@ -166,6 +189,86 @@ function exp_coeffs(expr::Sym, exp::Array{Sym,1})
         end
     end
     coeffs
+end
+
+function rec_dependency(recs::Array{<: Recurrence,1})
+    rec_dependency([], [], recs...)
+end
+
+function rec_dependency(indep, dep, rec::Recurrence, recs::Recurrence...)
+    expr = rhs(rec)
+    fns = symfunctions(expr)
+    println("Functions: ", fns)
+    # fns = union([match(f, w1(rec.n + w0))[w1] for f in fns])
+    depvars = filter(x -> (func(x)!=Sym(rec.f.x) && !in(Sym(0), args(x))), fns)
+    println("Functions 2: ", depvars)
+    
+    if isempty(depvars)
+        push!(indep, rec)
+    else
+        push!(dep, (rec, depvars))
+    end
+    rec_dependency(indep, dep, recs...)
+end
+
+function rec_dependency(indep, dep)
+    indep, dep
+end
+
+function subs(cf::ClosedForm, r::CFiniteRecurrence)
+    println("[subs] Closed form: ", cf)
+    println("[subs] Recurrence: ", r)
+    rel = relation(r)
+    rhs = polynomial(cf)
+    fns = symfunctions(rel)
+    for fn in fns
+        println("Function: ", fn)        
+        if func(fn) == Sym(cf.f.x)
+            println("ADSKFLJASDLKFJASDL")
+            w0 = Wild("w0")
+            idx = match(cf.f(cf.n + w0), fn)[w0]
+            # println(idx)
+            sub = rhs |> SymPy.subs(cf.n, cf.n + idx)
+            rel = rel |> SymPy.subs(cf.f(cf.n + idx), sub) |> simplify
+        end
+    end
+    return eq2rec(rel, r.f, r.n)
+    # r
+end
+
+function rec_solve(recs::Array{<: Recurrence,1})
+
+    # recs = loop.body
+    solved = ClosedForm[]
+    solvable = true
+    while solvable
+        indep, dep = rec_dependency(recs)
+        indepcnt = length(indep)
+        depcnt = length(dep)
+        
+        if indepcnt == 0 && depcnt != 0
+            error("Illegal coupling detected in loop body")
+        elseif indepcnt == 0 && depcnt == 0
+            break
+        end
+
+        recs = setdiff(recs, indep)
+        for rec in indep
+            cf = closedform(rec)
+
+            # TODO: deal with the case when a recurrence is not solvable
+
+            push!(solved, cf)
+            recs = filter(x -> x!=rec, recs)
+
+            recs = [subs(cf, r) for r in recs]
+            println("Changed recurrences:", recs)
+        end
+        if isempty(recs)
+            break
+        end
+    end
+    solved
 end
 
 # @syms n

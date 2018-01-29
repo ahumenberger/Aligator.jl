@@ -184,29 +184,31 @@ end
 
 #-------------------------------------------------------------------------------
 
-function symbolic(loop::CompoundStmt, lc::Sym)
-    return [symbolic(expr, lc) for expr in assignments(loop)]
+function symbolic(loop::CompoundStmt, lc::Sym, recvars::Array{Sym,1})
+    [symbolic(expr, lc, recvars) for expr in assignments(loop)]
 end
 
-function symbolic(expr::AssignPair, lc::Sym)
+function symbolic(expr::AssignPair, lc::Sym, recvars::Array{Sym,1})
     fn = SymFunction(string(lhs(expr)))
-    return SymbolicAssign(fn, lc, symbolic(lhs(expr), fn, lc+1), symbolic(rhs(expr), fn, lc))
+    return SymbolicAssign(fn, lc, symbolic(lhs(expr), fn, lc+1, recvars), symbolic(rhs(expr), fn, lc, recvars))
 end
 
-function symbolic(s::Symbol, f::SymFunction, lc::Sym)
-    if string(s) == string(Sym(f.x))
+function symbolic(s::Symbol, f::SymFunction, lc::Sym, recvars::Array{Sym,1})
+    if Sym(string(s)) in recvars
+        
+        f = SymFunction(string(s))
         return f(lc)
     end
     return SymPy.Sym(string(s))
 end
 
-function symbolic(i::Int, f::SymFunction, lc::Sym)
+function symbolic(i::Int, f::SymFunction, lc::Sym, recvars::Array{Sym,1})
     return Sym(i)
 end
 
-function symbolic(expr::Expr, f::SymFunction, lc::Sym)
+function symbolic(expr::Expr, f::SymFunction, lc::Sym, recvars::Array{Sym,1})
     if expr.head == :call && expr.args[1] in (:+, :-, :*, :/)
-        return eval(Expr(:call, expr.args[1], symbolic(expr.args[2], f, lc), symbolic(expr.args[3], f, lc)))
+        return eval(Expr(:call, expr.args[1], symbolic(expr.args[2], f, lc, recvars), symbolic(expr.args[3], f, lc, recvars)))
     else
         error("Not supported rhs in assignment")
     end
@@ -222,7 +224,7 @@ end
 function eq2rec(eq::Sym, fn::SymFunction, lc::Sym)
     fns = symfunctions(eq)
     w0 = Wild("w0")
-    ord = Int(maximum([match(fn(lc + w0), f)[w0] for f in fns]))
+    ord = Int(maximum([get(match(fn(lc + w0), f), w0, 0) for f in fns]))
     coeffs = Sym[]
     for i in 0:ord
         c, eq = coeff_rem(eq, fn(lc + i))
@@ -263,10 +265,12 @@ function extract_loop(str::String)
     loops = filter(x -> !isempty(x), loops)
     loops = canonical!(loops)
 
+    recvars = Sym.(union(variables.(loops)...))
+
     ls = SingleLoop[]
     for (i, loop) in enumerate(loops)
         lc = Sym("n_$(i)")
-        recs = recurrence.(symbolic(loop, lc))
+        recs = recurrence.(symbolic(loop, lc, recvars))
         loop = SingleLoop(LoopBody(recs), lc, Sym.(string.(variables(loop))))
         push!(ls, loop)
     end
@@ -332,4 +336,4 @@ loop = """
     end
 """
 
-extract_loop(ml1)
+# extract_loop(ml1)
