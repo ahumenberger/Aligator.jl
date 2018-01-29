@@ -34,7 +34,7 @@ function poly(cf::CFiniteClosedForm)
 end
 
 function Base.show(io::IO, cf::CFiniteClosedForm)
-    print(io, cf.f(cf.n), " Exp: $(cf.exp) Coeff: $(cf.coeff)\n", sympy["pretty"](poly(cf)))
+    print(io, cf.f(cf.n), " Exp: $(cf.exp) Coeff: $(cf.coeff)\n", sympy["pretty"](poly(cf)), "\n")
 end
 
 struct HyperClosedForm <: ClosedForm
@@ -45,9 +45,9 @@ end
 
 function polynomial(cf::CFiniteClosedForm) 
     if !isempty(cf.expvars)
-        return (cf.expvars .* cf.coeff)[1]
+        return sum(cf.expvars .* cf.coeff)
     end
-    return (cf.exp .* cf.coeff)[1]
+    error("No expvars given. This should not happen.")
 end
 
 exponentials(cf::ClosedForm) = cf.exp
@@ -97,7 +97,7 @@ function homogeneous(r::Recurrence)
         return eq2rec(simplify(res / c), r.f, r.n)
     else
         res = hompart(r) / r.inhom
-        res = (res |> subs(n, n + 1)) - res
+        res = expand((res |> subs(n, n + 1)) - res)
         idx = n + order(r) + 1
         c = coeff(res, r.f(idx))
         return eq2rec(simplify(res / c), r.f, r.n)
@@ -167,7 +167,9 @@ function closedform(orig::Recurrence)
     
     println("roots: ", roots)
     println("sol: ", sol)
-    exp = sort([z for (z, _) in roots], rev=true)
+    exp = [z for (z, _) in roots]
+    exp = filter(x -> x!=Sym(1), exp)
+    push!(exp, Sym(1))
     println("exp: ", exp)
     # coeff = [SymPy.coeff(sol, simplify(z^r.n)) for z in exp]
     coeff = exp_coeffs(sol, [z^r.n for z in exp])
@@ -184,6 +186,7 @@ function exp_coeffs(expr::Sym, exp::Array{Sym,1})
         else
             println("Expcoeffs: ", expr)
             c = SymPy.coeff(expr, simplify(ex))
+            println("[exp_coeffs]: ", c)            
             push!(coeffs, c)
             expr = simplify(expr - c*ex)
         end
@@ -219,21 +222,20 @@ function subs(cf::ClosedForm, r::CFiniteRecurrence)
     println("[subs] Closed form: ", cf)
     println("[subs] Recurrence: ", r)
     rel = relation(r)
-    rhs = polynomial(cf)
+    rhs = poly(cf)
     fns = symfunctions(rel)
     for fn in fns
-        println("Function: ", fn)        
         if func(fn) == Sym(cf.f.x)
-            println("ADSKFLJASDLKFJASDL")
             w0 = Wild("w0")
             idx = match(cf.f(cf.n + w0), fn)[w0]
-            # println(idx)
+            println("[subs] rhs: ", rhs)
             sub = rhs |> SymPy.subs(cf.n, cf.n + idx)
+            println("To be plugged in: ", sub)
             rel = rel |> SymPy.subs(cf.f(cf.n + idx), sub) |> simplify
+            println("Plugged in: ", rel)
         end
     end
     return eq2rec(rel, r.f, r.n)
-    # r
 end
 
 function rec_solve(recs::Array{<: Recurrence,1})

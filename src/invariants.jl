@@ -39,8 +39,23 @@ function ==(I::Singular.sideal, J::Singular.sideal)
  end
 
 function invariants(loop::SingleLoop)
+    inivars = [Sym("$(v)_0") for v in loop.vars]
+    auxvars = [Sym("$(v)_1") for v in loop.vars]    
+    finvars = [Sym("$(v)") for v in loop.vars]
+    
+    R, _ = PolynomialRing(QQ, string.(union(inivars, finvars)))
+
     cfs = rec_solve(loop.body)
-    invariants(cfs, loop.vars, loop.lc)
+    I = invariants(cfs, loop.vars, loop.lc)
+
+    b = [x - y for (x,y) in zip(finvars, auxvars)]
+    B, varmap = Ideal(b)
+    elim = prod([varmap[v] for v in auxvars])
+    B = imap(B, base_ring(I))
+    elim = imap(elim, base_ring(I))
+
+    I = Singular.eliminate(I + B, elim)
+    imap(I, R)
 end
 
 function invariants(loop::MultiLoop)
@@ -86,7 +101,7 @@ function invariants(cfs::Array{<: ClosedForm}, loopvars::Array{Sym,1}, lc::Sym; 
 
     polyfn(cf) = Sym(string(Sym(cf.f.x))) - replace_init_vars(polynomial(cf), index)[1]
     basis = polyfn.(cfs)
-    # println("Basis (before preprocessing): ", basis)
+    println("Basis (before preprocessing): ", basis)
 
     initvars = [Sym("$(v)_0") for v in loopvars]
     midvars = [Sym("$(v)_$(index)") for v in loopvars]
@@ -95,7 +110,7 @@ function invariants(cfs::Array{<: ClosedForm}, loopvars::Array{Sym,1}, lc::Sym; 
     dict = Dict(zip(loopvars, newvars))
     basis = [b |> subs(dict) for b in basis]
     # println("Basis (in invariatns): ", basis)
-    I, varmap = Ideal(basis, vars=union(vars, initvars))
+    I, varmap = Ideal(basis, vars=union(vars, initvars, midvars))
     if !isnull(precond)
         J = imap(get(precond), base_ring(I))
         println("Preconditions: ", get(precond))
@@ -138,6 +153,7 @@ function imap(I::sideal, R::Singular.PolyRing)
 end
 
 function replace_init_vars(expr::Sym, index::Int=0)
+    println("Replace init: ", expr)
     w0   = Wild("w0")
     fns  = Sym.(collect(atoms(expr, AppliedUndef)))
     # args = [Int(match(f(w0), fn)[w0]) for fn in fns]

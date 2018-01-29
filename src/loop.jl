@@ -1,11 +1,20 @@
-struct LoopBody
-    recs::Array{Recurrence}
-end
+abstract type Loop end
 
-struct Loop
+const LoopBody = Array{<:Recurrence,1}
+
+type EmptyLoop <: Loop end
+
+struct SingleLoop <: Loop
     body::LoopBody
-    cond::Expr # not used for now
-    init
+    lc::Sym
+    vars::Array{Sym,1}
+    # cond::Expr # not used for now
+    # init
 end
 
-
+struct MultiLoop <: Loop
+    branches::Array{SingleLoop}
+    vars::Array{Sym,1}
+    # cond::Expr
+    # init
+end

@@ -19,14 +19,14 @@ val_map = Dict(
                "One"              => :(1),
                "NegativeOne"      => :(-1),
                "Half"             => :(1/2),
-               "Pi"               => :pi,
-               "Exp1"             => :e,
-               "Infinity"         => :Inf,
-               "NegativeInfinity" => :(-Inf),
-               "ComplexInfinity"  => :Inf, # error?
-               "ImaginaryUnit"    => :im,
-               "BooleanTrue"      => :true,
-               "BooleanFalse"     => :false
+            #    "Pi"               => :pi,
+            #    "Exp1"             => :e,
+            #    "Infinity"         => :Inf,
+            #    "NegativeInfinity" => :(-Inf),
+            #    "ComplexInfinity"  => :Inf, # error?
+            #    "ImaginaryUnit"    => :im,
+            #    "BooleanTrue"      => :true,
+            #    "BooleanFalse"     => :false
 )
 
 map_fn(fn_map, key)   = get(fn_map, key, key)
@@ -51,16 +51,41 @@ function replace_sympy(ex; values=Dict(), fns=Dict())
         return vals_map[fn]
     end
 
+    error("should not be visited")
     Expr(:call, map_fn(fns_map, fn), [replace_sympy(a, values=values) for a in args(ex)]...)
 end
+
+@syms x y
+const ADD = func(x+y)
+const MUL = func(x*y)
+const POW = func(x^y)
 
 function sym2spoly(b::Array{Sym, 1}; vars = Sym[])
     fvars = union(free_symbols.(b)..., vars)
     svars = string.(fvars)
     R, pvars = PolynomialRing(QQ, svars)
     dict = Dict(zip(fvars, pvars))
-    basis = [eval(replace_sympy(p, values = dict)) for p in b]
+    println("+++++ replace: ", b)
+    basis = @time [shallow_replace(p, values = dict) for p in b]
+    println("+++++ eval")
+    basis = @time eval.(basis)
     return R, basis, dict
+end
+
+function shallow_replace(expr::Sym; values = Dict())
+    fn = func(expr)
+    # println("Function: ", fn==ADD)
+    a = [shallow_replace(arg, values=values) for arg in args(expr)]
+    # println("Start: ", expr)
+    # println("Result: ", a)
+    if fn == ADD
+        return sum(a)
+    elseif fn == MUL
+        return prod(a)
+    elseif fn == POW
+        return a[1]^a[2]
+    end
+    return replace_sympy(expr, values=values)
 end
 
 function sym2spoly(p::Sym; vars = Sym[])
