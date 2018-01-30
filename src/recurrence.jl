@@ -44,10 +44,12 @@ struct HyperClosedForm <: ClosedForm
 end
 
 function polynomial(cf::CFiniteClosedForm) 
-    if !isempty(cf.expvars)
+    if isempty(cf.expvars)
+        return sum(cf.coeff)
+    else
         return sum(cf.expvars .* cf.coeff)
     end
-    error("No expvars given. This should not happen.")
+    # error("No expvars given. This should not happen.")
 end
 
 exponentials(cf::ClosedForm) = cf.exp

@@ -77,7 +77,9 @@ function shallow_replace(expr::Sym; values = Dict())
     # println("Function: ", fn==ADD)
     a = [shallow_replace(arg, values=values) for arg in args(expr)]
     # println("Start: ", expr)
-    # println("Result: ", a)
+    println("Result: ", a)
+    println("Result: ", typeof.(a))
+    println("Map: ", values)
     if fn == ADD
         return sum(a)
     elseif fn == MUL
@@ -90,6 +92,10 @@ end
 
 function sym2spoly(p::Sym; vars = Sym[])
     sym2spoly([p], vars=vars)[1]
+end
+
+function sym2spoly(poly::Sym, varmap::Dict)
+    eval(shallow_replace(poly, values = varmap))
 end
 
 #-------------------------------------------------------------------------------
