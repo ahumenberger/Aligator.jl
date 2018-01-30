@@ -85,11 +85,11 @@ function preprocess(loops::Array{SingleLoop,1}; singleloop::Bool = false)
         end
 
         R, svars = PolynomialRing(QQ, vars)
-        varmap = Dict(zip(Sym.(vars), svars))
+        varmap = Dict(zip(vars, svars))
 
         # replace exponentials in closed forms with variables
-        expsym = collect(Sym(expvars...))
         if !isempty(expvars)
+            expsym = Sym.(expvars)
             expmap = Dict(zip(exp, expsym))
             expvars!.(cfs, expmap)
         end
