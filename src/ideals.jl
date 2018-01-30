@@ -60,10 +60,8 @@ function sym2spoly(b::Array{Sym, 1})
     svars = string.(fvars)
     R, pvars = PolynomialRing(QQ, svars)
     dict = Dict(zip(string.(fvars), pvars))
-    println("+++++ replace: ", b)
-    basis = @time [shallow_replace(p, dict) for p in b]
-    println("+++++ eval")
-    basis = @time eval.(basis)
+    basis = [shallow_replace(p, dict) for p in b]
+    basis = eval.(basis)
     return R, basis, dict
 end
 
