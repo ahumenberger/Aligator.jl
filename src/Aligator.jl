@@ -124,6 +124,47 @@ wensley = """
     end
 """
 
+lcm = """
+    while x != y
+        if x > y
+            x = x - y
+            v = v + u
+        else
+            y = y - x
+            u = u + v
+        end
+    end
+"""
+
+knuth = """
+    while (s >= d) && (r != 0)
+        if 2*r-rp+q < 0
+        t  = r
+        r  = 2*r-rp+q+d+2
+        rp = t
+        q  = q+4
+        d  = d+2
+        elseif (2*r-rp+q >= 0) && (2*r-rp+q < d+2)
+        t  = r
+        r  = 2*r-rp+q
+        rp = t
+        d  = d+2
+        elseif (2*r-rp+q >= 0) && (2*r-rp+q >= d+2) && (2*r-rp+q < 2*d+4)
+        t  = r
+        r  = 2*r-rp+q-d-2
+        rp = t
+        q  = q-4
+        d  = d+2
+        else # ((2*r-rp+q >= 0) && (2*r-rp+q >= 2*d+4))
+        t  = r
+        r  = 2*r-rp+q-2*d-4
+        rp = t
+        q  = q-8
+        d  = d+2
+        end
+    end
+"""
+
 # aligator(loop3)
 
 # extract_loop(loop)

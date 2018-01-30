@@ -258,12 +258,15 @@ end
 
 function extract_loop(str::String)
     loops = extract_assign(parse(str), 0)
-    # println(loops)
-    
     loops = transform(loops, CompoundStmt(), CompoundStmt())
     loops = flattenall(loops)
     loops = filter(x -> !isempty(x), loops)
-    loops = canonical!(loops)
+
+    if all(isa.(loops, CompoundStmt))
+        loops = canonical!(Array{CompoundStmt,1}(loops))
+    else
+        error("Something went wrong while flattening the loop.")
+    end
 
     recvars = Sym.(union(variables.(loops)...))
 
