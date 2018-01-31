@@ -20,18 +20,18 @@ include("dependencies.jl")
 include("ideals.jl")
 include("singular_imap.jl")
 
-#-------------------------------------------------------------------------------
 
 function aligator(str::String)
     loop = extract_loop(str)
-    # if isa(loop, SingleLoop)
-    #     println(rec_solve(loop.body))
-    # end
     invs = invariants(loop)
     return invs
 end
 
+end # module
+
 #-------------------------------------------------------------------------------
+
+module Examples
 
 loop = """
     while true
@@ -124,7 +124,7 @@ wensley = """
     end
 """
 
-lcm = """
+exlcm = """
     while x != y
         if x > y
             x = x - y
@@ -164,13 +164,5 @@ knuth = """
         end
     end
 """
-
-# aligator(loop3)
-
-# extract_loop(loop)
-
-l = aligator(notfermat)
-println(l)
-# package code goes here
 
 end # module
