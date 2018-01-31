@@ -29,11 +29,13 @@ function invariants(loop::MultiLoop)
     inivars = ["$(v)_0" for v in loopvars]
     R, _ = PolynomialRing(QQ, [inivars; loopvars])
 
-    preprocessed = preprocess(loop.branches)
+    preprocessed, time = @timed preprocess(loop.branches)
+    println("Time need for recurrence solving: $(time)")
     index = 0
     I_new = initial_ideal(loopvars)
     I_o = 1
     I_n = nothing
+    _, time = @timed begin
     while I_n != I_o
         I_o = I_n
         for sys in preprocessed
@@ -58,6 +60,8 @@ function invariants(loop::MultiLoop)
         I_n = groebner(imap(I_n, R))
         # println("Final ideal: ", I_n)
     end
+    end
+    println("Time need for invariant ideal computation: $(time)")
     I_n
 end
 

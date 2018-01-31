@@ -1,5 +1,4 @@
 
-
 module Aligator
 
 export aligator
@@ -13,6 +12,7 @@ using Cxx
 
 
 include("utils.jl")
+include("closedform.jl")
 include("recurrence.jl")
 include("invariants.jl")
 include("parse_julia.jl")
@@ -22,8 +22,13 @@ include("singular_imap.jl")
 
 
 function aligator(str::String)
-    loop = extract_loop(str)
-    invs = invariants(loop)
+    _, time = @timed begin
+        loop, time = @timed extract_loop(str)
+        println("Time need for recurrence extraction: $(time)")
+        invs = invariants(loop)
+    end
+    println("\nTotal time needed: $(time)")
+    
     return invs
 end
 
@@ -162,6 +167,13 @@ knuth = """
         q  = q-8
         d  = d+2
         end
+    end
+"""
+
+petter2 = """
+    while true
+        x = x + y^2
+        y = y + 1
     end
 """
 
