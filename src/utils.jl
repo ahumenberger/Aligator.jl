@@ -29,9 +29,9 @@ function symfunctions(expr::Sym)
 end
 
 # override show for SymPy.SymFunction
-function Base.show(io::IO, f::SymPy.SymFunction)
-    return show(io, Sym(f.x))
-end
+# function Base.show(io::IO, f::SymPy.SymFunction)
+#     return show(io, Sym(f.x))
+# end
 
 function coeff_rem(expr::Sym, t::Sym)
     c = SymPy.coeff(expr, t)

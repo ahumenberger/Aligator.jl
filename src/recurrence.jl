@@ -97,12 +97,10 @@ function closedform(orig::CFiniteRecurrence)
     # d = hcat([[uniquevar() * r.n^i, z^r.n] for (z, m) in roots for i in 0:m - 1])
     # println(d[:,2])
     ansatz = sum([sum([uniquevar() * r.n^i * z^r.n for i in 0:m - 1]) for (z, m) in roots])
-    println(ansatz)
+    # println(ansatz)
     # println(free_symbols(ansatz(n)))
     unknowns = filter(e -> e != r.n, free_symbols(ansatz))
-    println(unknowns)
     system = [Eq(r.f(i), ansatz |> subs(r.n, i)) for i in 0:order(r) - 1]
-    println(system)
     sol = solve(system, unknowns)
     sol = ansatz |> subs(sol)
     

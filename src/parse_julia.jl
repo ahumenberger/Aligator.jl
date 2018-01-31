@@ -129,9 +129,7 @@ end
 #-------------------------------------------------------------------------------
 
 function extract_assign(expr::Expr, level)
-    # println(expr.head)
     h = string(expr.head)
-    println(string([" " for i in 1:level]...), "head: ", h)
     if h == "while"
         # ignore guard in expr.args[1]
         return extract_assign(expr.args[2], level+2)
@@ -164,23 +162,6 @@ function extract_assign(expr::Expr, level)
         return AssignPair(expr.args[1], expr.args[2])
     end
 end
-
-# function flatten(loops)
-
-#     nest = [loops]
-#     flat = []
-#     while !isempty(nest)
-#         nest = nest |> Iterators.flatten |> collect
-#         nest = reverse(nest)
-#         if isa(nest[1], Dict) && isa(nest[2], Dict)
-#             flat = [flat; nest]
-#             return flat
-#         else            
-#             flat = [flat; [pop!(nest)]]
-#         end
-#     end
-#     return flat
-# end
 
 #-------------------------------------------------------------------------------
 
@@ -277,8 +258,7 @@ function extract_loop(str::String)
         loop = SingleLoop(LoopBody(recs), lc, Sym.(string.(variables(loop))))
         push!(ls, loop)
     end
-    # recs = [ for (i, loop) in enumerate(loops)]
-    # loops = SingleLoop.(LoopBody.(recs))
+
     if length(ls) == 0
         return EmptyLoop()
     elseif length(ls) == 1
@@ -286,25 +266,6 @@ function extract_loop(str::String)
     else
         return MultiLoop(ls, ls[1].vars)
     end
-
-    # if isa(loops, AssignBlock)
-    #     # single-path loop
-    #     loops = [loops]
-    # else
-    #     # multi-path loop -> flattening needed
-    #     loops = Array{AssignBlock,1}(flatten(loops))
-    #     canonical!(loops)
-    # end
-    # println("Loops: ", loops)
-    # recs = [recurrence.(symbolic(loop, Sym("n_$(i)"))) for (i, loop) in enumerate(loops)]
-    # loops = SingleLoop.(LoopBody.(recs))
-    # if length(loops) == 0
-    #     return EmptyLoop()
-    # elseif length(loops) == 1
-    #     return loops[1]
-    # else
-    #     return MultiLoop(loops)
-    # end
 end
 
 ml1 = """

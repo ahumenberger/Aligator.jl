@@ -2,8 +2,6 @@
 import Singular.PolynomialRing
 import Singular.QQ
 
-using TimerOutputs
-
 #-------------------------------------------------------------------------------
 
 funcname(x) = PyCall.PyObject(x)[:func][:__name__]
@@ -17,10 +15,10 @@ fn_map = Dict(
 )
 
 val_map = Dict(
-               "Zero"             => :(0),
-               "One"              => :(1),
-               "NegativeOne"      => :(-1),
-               "Half"             => :(1/2),
+               "Zero"             => (0),
+               "One"              => (1),
+               "NegativeOne"      => (-1),
+               "Half"             => (1//2),
             #    "Pi"               => :pi,
             #    "Exp1"             => :e,
             #    "Infinity"         => :Inf,
@@ -65,13 +63,13 @@ function sym2spoly(b::Array{Sym, 1})
     return R, basis, dict
 end
 
-# const to = TimerOutput()
 
 function shallow_replace(expr::Sym, vars::Dict)
     fn = funcname(expr)
     # println("Function: ", fn==ADD)
     a = [shallow_replace(arg, vars) for arg in args(expr)]
     # println("Start: ", expr)
+    # println("Start: ", a)
     if fn == "Add"
         return sum(a)
     elseif fn == "Mul"
