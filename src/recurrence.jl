@@ -80,20 +80,14 @@ function rewrite(d::Dict{Sym,Sym})
 end
 
 function closedform(orig::CFiniteRecurrence)
-    println("Original: ", orig)
     r = homogeneous(orig)
-    println("Homogenous: ", r)
-    
 
     shift = order(r) - order(orig)
     rh = rhs(orig)
     init = Dict{Sym,Sym}([(orig.f(i), rh |> SymPy.replace(orig.n, i-1)) for i in 1:shift])
     # init = rewrite(init)
 
-    println("Init: ", init)
-
     rel = relation(r)
-    println("Recurrence: ", r)
     # println("Homogeneous: ", homogeneous(r))
     w0  = Wild("w0")
     @syms lbd
@@ -110,7 +104,6 @@ function closedform(orig::CFiniteRecurrence)
     system = [Eq(r.f(i), ansatz |> subs(r.n, i)) for i in 0:order(r) - 1]
     println(system)
     sol = solve(system, unknowns)
-    println("Solution: ", sol)
     sol = ansatz |> subs(sol)
     
     if !isempty(init)
@@ -121,20 +114,14 @@ function closedform(orig::CFiniteRecurrence)
                 break
             end
             sol = tmp
-            println("tmp: ", tmp)
         end
         sol = simplify(tmp)
     end
     
-    println("roots: ", roots)
-    println("sol: ", sol)
     exp = [z for (z, _) in roots]
     exp = filter(x -> x!=Sym(1), exp)
     push!(exp, Sym(1))
-    println("exp: ", exp)
-    # coeff = [SymPy.coeff(sol, simplify(z^r.n)) for z in exp]
     coeff = exp_coeffs(sol, [z^r.n for z in exp])
-    println("coeff: ", coeff)
     return CFiniteClosedForm(r.f, r.n, exp, coeff)
 end
 
@@ -145,9 +132,7 @@ function exp_coeffs(expr::Sym, exp::Array{Sym,1})
         if ex == Sym(1)
             push!(coeffs, expr)
         else
-            println("Expcoeffs: ", expr)
             c = SymPy.coeff(expr, simplify(ex))
-            println("[exp_coeffs]: ", c)            
             push!(coeffs, c)
             expr = simplify(expr - c*ex)
         end
@@ -162,10 +147,7 @@ end
 function rec_dependency(indep, dep, rec::Recurrence, recs::Recurrence...)
     expr = rhs(rec)
     fns = symfunctions(expr)
-    println("Functions: ", fns)
-    # fns = union([match(f, w1(rec.n + w0))[w1] for f in fns])
     depvars = filter(x -> (func(x)!=Sym(rec.f.x) && !in(Sym(0), args(x))), fns)
-    println("Functions 2: ", depvars)
     
     if isempty(depvars)
         push!(indep, rec)
@@ -180,8 +162,6 @@ function rec_dependency(indep, dep)
 end
 
 function subs(cf::ClosedForm, r::CFiniteRecurrence)
-    println("[subs] Closed form: ", cf)
-    println("[subs] Recurrence: ", r)
     rel = relation(r)
     rhs = poly(cf)
     fns = symfunctions(rel)
@@ -189,11 +169,8 @@ function subs(cf::ClosedForm, r::CFiniteRecurrence)
         if func(fn) == Sym(cf.f.x)
             w0 = Wild("w0")
             idx = match(cf.f(cf.n + w0), fn)[w0]
-            println("[subs] rhs: ", rhs)
             sub = rhs |> SymPy.subs(cf.n, cf.n + idx)
-            println("To be plugged in: ", sub)
             rel = rel |> SymPy.subs(cf.f(cf.n + idx), sub) |> simplify
-            println("Plugged in: ", rel)
         end
     end
     return eq2rec(rel, r.f, r.n)
@@ -225,7 +202,6 @@ function rec_solve(recs::Array{<: Recurrence,1})
             recs = filter(x -> x!=rec, recs)
 
             recs = [subs(cf, r) for r in recs]
-            println("Changed recurrences:", recs)
         end
         if isempty(recs)
             break
@@ -233,18 +209,3 @@ function rec_solve(recs::Array{<: Recurrence,1})
     end
     solved
 end
-
-# @syms n
-# f = SymFunction("F")
-
-# rec = CFiniteRecurrence([Sym(-1),Sym(-1),Sym(1)], f, n)
-
-# r2 = CFiniteRecurrence([Sym(-2),Sym(1)], f, n)
-
-# closedform(rec)
-
-# println("order: ", order(rec))
-
-# inhom = CFiniteRecurrence([Sym(-1),Sym(-1),Sym(1)], f, n, 2)
-# is_homogeneous(inhom)
-# homogeneous(inhom)
