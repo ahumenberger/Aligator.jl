@@ -207,7 +207,7 @@ function symbolic(i::Int, f::SymFunction, lc::Sym, recvars::Array{Sym,1})
 end
 
 function symbolic(expr::Expr, f::SymFunction, lc::Sym, recvars::Array{Sym,1})
-    if expr.head == :call && expr.args[1] in (:+, :-, :*, :/)
+    if expr.head == :call && expr.args[1] in (:+, :-, :*, :/, :^)
         return eval(Expr(:call, expr.args[1], symbolic(expr.args[2], f, lc, recvars), symbolic(expr.args[3], f, lc, recvars)))
     else
         error("Not supported rhs in assignment")
