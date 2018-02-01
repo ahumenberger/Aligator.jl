@@ -165,31 +165,48 @@ end
 
 #-------------------------------------------------------------------------------
 
-function symbolic(loop::CompoundStmt, lc::Sym, recvars::Array{Sym,1})
-    [symbolic(expr, lc, recvars) for expr in assignments(loop)]
+function symbolic2(lc::Sym, recvars::Array{Symbol,1}, visited::Array{Symbol,1}, pair::AssignPair, pairs::AssignPair...)
+    fn = SymFunction(string(lhs(pair)))
+    sa = SymbolicAssign(fn, lc, symbolic(lhs(pair), fn, lc+1, recvars, visited, false), symbolic(rhs(pair), fn, lc, recvars, visited, true))
+    rs = symbolic2(lc, recvars, [visited; lhs(pair)], pairs...)
+    [sa; rs]
 end
 
-function symbolic(expr::AssignPair, lc::Sym, recvars::Array{Sym,1})
-    fn = SymFunction(string(lhs(expr)))
-    return SymbolicAssign(fn, lc, symbolic(lhs(expr), fn, lc+1, recvars), symbolic(rhs(expr), fn, lc, recvars))
+function symbolic2(lc::Sym, recvars::Array{Symbol,1}, visited::Array{Symbol,1})
+    SymbolicAssign[]
 end
 
-function symbolic(s::Symbol, f::SymFunction, lc::Sym, recvars::Array{Sym,1})
-    if Sym(string(s)) in recvars
-        
+#-------------------------------------------------------------------------------
+
+
+function symbolic(loop::CompoundStmt, lc::Sym, recvars::Array{Symbol,1})
+    symbolic2(lc, recvars, Symbol[], loop.pairs...)
+end
+
+# function symbolic(expr::AssignPair, lc::Sym, recvars::Array{Sym,1})
+#     fn = SymFunction(string(lhs(expr)))
+#     return SymbolicAssign(fn, lc, symbolic(lhs(expr), fn, lc+1, recvars, visited), symbolic(rhs(expr), fn, lc, recvars, visited))
+# end
+
+function symbolic(s::Symbol, f::SymFunction, lc::Sym, recvars::Array{Symbol,1}, visited::Array{Symbol,1}, rhs::Bool)
+    if s in recvars
         f = SymFunction(string(s))
-        return f(lc)
+        if rhs && s in visited
+            return f(lc + 1)
+        else
+            return f(lc)
+        end
     end
     return SymPy.Sym(string(s))
 end
 
-function symbolic(i::Int, f::SymFunction, lc::Sym, recvars::Array{Sym,1})
+function symbolic(i::Int, f::SymFunction, lc::Sym, recvars::Array{Symbol,1}, visited::Array{Symbol,1}, rhs::Bool)
     return Sym(i)
 end
 
-function symbolic(expr::Expr, f::SymFunction, lc::Sym, recvars::Array{Sym,1})
+function symbolic(expr::Expr, f::SymFunction, lc::Sym, recvars::Array{Symbol,1}, visited::Array{Symbol,1}, rhs::Bool)
     if expr.head == :call && expr.args[1] in (:+, :-, :*, :/, :^)
-        return eval(Expr(:call, expr.args[1], symbolic(expr.args[2], f, lc, recvars), symbolic(expr.args[3], f, lc, recvars)))
+        return eval(Expr(:call, expr.args[1], symbolic(expr.args[2], f, lc, recvars, visited, rhs), symbolic(expr.args[3], f, lc, recvars, visited, rhs)))
     else
         error("Not supported rhs in assignment")
     end
@@ -249,12 +266,13 @@ function extract_loop(str::String)
         error("Something went wrong while flattening the loop.")
     end
 
-    recvars = Sym.(union(variables.(loops)...))
+    recvars = union(variables.(loops)...)
 
     ls = SingleLoop[]
     for (i, loop) in enumerate(loops)
         lc = Sym("n_$(i)")
         recs = recurrence.(symbolic(loop, lc, recvars))
+        println("Recurrences: ", recs)
         loop = SingleLoop(LoopBody(recs), lc, Sym.(string.(variables(loop))))
         push!(ls, loop)
     end
@@ -267,37 +285,3 @@ function extract_loop(str::String)
         return MultiLoop(ls, ls[1].vars)
     end
 end
-
-ml1 = """
-    while a != b
-        if a > b
-            a = a - b
-            p = p - q
-            r = r - s
-        else
-            b = b - a
-            q = q - p
-            s = s - r
-        end
-    end
-"""
-
-loop = """
-    while true
-        if y > 1
-            x = x + 1
-            y = y - 1
-            z = 1
-            a = b
-        elseif t > 1
-            x1 = x1 + 1
-            y1 = y1 - 1
-            z1 = 1
-            a1 = b1
-        else
-            abc = a2
-        end
-    end
-"""
-
-# extract_loop(ml1)
