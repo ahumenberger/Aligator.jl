@@ -206,7 +206,7 @@ end
 
 function symbolic(expr::Expr, f::SymFunction, lc::Sym, recvars::Array{Symbol,1}, visited::Array{Symbol,1}, rhs::Bool)
     if expr.head == :call && expr.args[1] in (:+, :-, :*, :/, :^)
-        return eval(Expr(:call, expr.args[1], symbolic(expr.args[2], f, lc, recvars, visited, rhs), symbolic(expr.args[3], f, lc, recvars, visited, rhs)))
+        return eval(Expr(:call, expr.args[1], [symbolic(expr.args[i], f, lc, recvars, visited, rhs) for i in 2:length(expr.args)]... ))
     else
         error("Not supported rhs in assignment")
     end
@@ -220,14 +220,16 @@ function recurrence(expr::SymbolicAssign)
 end
 
 function eq2rec(eq::Sym, fn::SymFunction, lc::Sym)
-    
+
     fns = symfunctions(eq)
     w0 = Wild("w0")
     args = [get(match(fn(lc + w0), f), w0, nothing) for f in fns]
     args = filter(x -> x!=nothing, args)
     minidx = Int(minimum(args))
-    if minidx != 0
+    if minidx < 0
         eq = eq |> subs(lc, lc - minidx)
+    else
+        minidx = 0
     end
     ord = Int(maximum(args)) - minidx
     coeffs = Sym[]
