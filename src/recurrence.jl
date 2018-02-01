@@ -38,6 +38,9 @@ function is_homogeneous(r::Recurrence)
 end
 
 function rhs(r::Recurrence)
+    if length(r.coeffs) == 1
+        return -r.inhom
+    end
     simplify(-sum([c * r.f(r.n + (i - 1)) for (i, c) in enumerate(r.coeffs[1:end-1])]) - r.inhom)
 end
 
@@ -80,11 +83,14 @@ function rewrite(d::Dict{Sym,Sym})
 end
 
 function closedform(orig::CFiniteRecurrence)
+    # println("Original: ", orig)
     r = homogeneous(orig)
-
+    # println("Homogeneous: ", r)
+    
     shift = order(r) - order(orig)
     rh = rhs(orig)
-    init = Dict{Sym,Sym}([(orig.f(i), rh |> SymPy.replace(orig.n, i-1)) for i in 1:shift])
+    ord = order(orig)
+    init = Dict{Sym,Sym}([(orig.f(i), rh |> SymPy.replace(orig.n, i-ord)) for i in ord:shift+ord-1])
     # init = rewrite(init)
 
     rel = relation(r)
@@ -92,6 +98,7 @@ function closedform(orig::CFiniteRecurrence)
     w0  = Wild("w0")
     @syms lbd
     cpoly   = rel |> SymPy.replace(r.f(r.n + w0), lbd^w0)
+    # println("CPoly: ", cpoly |> simplify)
     # factors = factor_list(cpoly)
     roots   = polyroots(cpoly)
     # d = hcat([[uniquevar() * r.n^i, z^r.n] for (z, m) in roots for i in 0:m - 1])
@@ -101,17 +108,17 @@ function closedform(orig::CFiniteRecurrence)
     # println(free_symbols(ansatz(n)))
     unknowns = filter(e -> e != r.n, free_symbols(ansatz))
     system = [Eq(r.f(i), ansatz |> subs(r.n, i)) for i in 0:order(r) - 1]
-    sol = solve(system, unknowns)
+    sol = @time solve(system, unknowns)
     sol = ansatz |> subs(sol)
-    
     if !isempty(init)
         tmp = nothing
         while true
-            tmp = sol |> subs(init)
+            tmp = (sol |> subs(init)) |> simplify
             if tmp == sol
                 break
             end
             sol = tmp
+            
         end
         sol = simplify(tmp)
     end
@@ -175,7 +182,10 @@ function subs(cf::ClosedForm, r::CFiniteRecurrence)
 end
 
 function rec_solve(recs::Array{<: Recurrence,1})
-
+    # println("Recurrences: ", recs)
+    
+    recs = rec_simplify(Recurrence[], recs...)
+    # println("Simplifed recurrences: ", recs)
     # recs = loop.body
     solved = ClosedForm[]
     solvable = true
@@ -206,4 +216,70 @@ function rec_solve(recs::Array{<: Recurrence,1})
         end
     end
     solved
+end
+
+#-------------------------------------------------------------------------------
+
+function contains_func(expr::Sym, f::SymFunction)
+    fns = symfunctions(expr)
+    w0 = Wild("w0")
+    args = [get(match(f(w0), fn), w0, nothing) for fn in fns]
+    args = filter(x -> x!=nothing, args)
+    !isempty(args)
+end
+
+function rec_subs(r::Recurrence, rec::Recurrence)
+    # println("subs $(rec) in $(r)")
+    expr = rhs(r)
+    fns = symfunctions(expr)
+    w0 = Wild("w0")
+    args = [get(match(rec.f(w0), fn), w0, nothing) for fn in fns]
+    args = filter(x -> x!=nothing, args)
+    if isempty(args)
+        return r
+    end
+    for arg in args
+        diff = rec.n + 1 - arg
+        sub = rhs(rec) |> subs(rec.n, rec.n - diff)
+        expr = expr |> subs(rec.f(arg), sub)
+    end
+    # assume lhs of rec is always f(n+1) (just temporarily)
+    # println("result: ", expr)
+    eq2rec(r.f(r.n+1) - simplify(expr), r.f, r.n)
+end
+
+# function rec_simplify(recs::Array{<:Recurrence,1})
+#     # processed = Recurrence[]
+#     # for rec in recs
+#     #     expr = rhs(rec)
+#     #     # fns = symfunctions(expr)
+#     #     # w0 = Wild("w0")
+#     #     # args = [match(rec.f(w0), expr)[w0] for fn in fns]
+#     #     if !contains_func(expr, rec.f) # not a real recurrence
+#     #         processed = [rec_subs(r, rec) for r in processed]
+#     #         recs = [rec_subs(r, rec) for r in recs]
+#     #     else
+#     #         push!(processed, rec)
+#     #     end
+#     # end
+#     # processed
+#     rec_simplify(Recurrence[], recs...)
+# end
+
+function rec_simplify(processed::Array{<:Recurrence}, rec::Recurrence, recs::Recurrence...)
+    expr = rhs(rec)
+    # fns = symfunctions(expr)
+    # w0 = Wild("w0")
+    # args = [match(rec.f(w0), expr)[w0] for fn in fns]
+    if !contains_func(expr, rec.f) # not a real recurrence
+        processed = [rec_subs(r, rec) for r in processed]
+        recs = [rec_subs(r, rec) for r in recs]
+    else
+        push!(processed, rec)
+    end
+    rec_simplify(processed, recs...)
+end
+
+function rec_simplify(processed::Array{<:Recurrence})
+    processed
 end

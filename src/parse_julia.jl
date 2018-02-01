@@ -220,9 +220,16 @@ function recurrence(expr::SymbolicAssign)
 end
 
 function eq2rec(eq::Sym, fn::SymFunction, lc::Sym)
+    
     fns = symfunctions(eq)
     w0 = Wild("w0")
-    ord = Int(maximum([get(match(fn(lc + w0), f), w0, 0) for f in fns]))
+    args = [get(match(fn(lc + w0), f), w0, nothing) for f in fns]
+    args = filter(x -> x!=nothing, args)
+    minidx = Int(minimum(args))
+    if minidx != 0
+        eq = eq |> subs(lc, lc - minidx)
+    end
+    ord = Int(maximum(args)) - minidx
     coeffs = Sym[]
     for i in 0:ord
         c, eq = coeff_rem(eq, fn(lc + i))
