@@ -28,6 +28,7 @@ assignments(cs::CompoundStmt) = cs.pairs
 
 push!(cs::CompoundStmt, p::AssignPair) = push!(cs.pairs, p)
 isempty(cs::CompoundStmt) = isempty(cs.pairs)
+merge(cs1::CompoundStmt, cs2::CompoundStmt) = CompoundStmt([cs1.pairs; cs2.pairs])
 
 CompoundStmt() = CompoundStmt(Array{AssignPair,1}())
 CompoundStmt(cs::CompoundStmt...) = CompoundStmt(vcat(assignments.(cs)))
@@ -114,15 +115,15 @@ function transform(block::AssignBlock, before::CompoundStmt, after::CompoundStmt
 end
 
 function transform(c1::CompoundStmt, stmt::IfStmt, before::CompoundStmt, after::CompoundStmt)
-    transform(stmt, [before; c1], after)
+    transform(stmt, merge(before, c1), after)
 end
 
 function transform(c1::CompoundStmt, stmt::IfStmt, c2::CompoundStmt, before::CompoundStmt, after::CompoundStmt)
-    transform(stmt, [before; c1], [c1; after])
+    transform(stmt, merge(before, c1), merge(c1, after))
 end
 
 function transform(stmt::IfStmt, c2::CompoundStmt, before::CompoundStmt, after::CompoundStmt)
-    transform(stmt, before, [c1; after])
+    transform(stmt, before, merge(c1, after))
 end
 
 
