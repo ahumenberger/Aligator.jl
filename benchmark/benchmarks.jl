@@ -2,16 +2,22 @@
 using BenchmarkTools
 using Aligator
 
+include("singlepath.jl")
 include("multipath.jl")
 
-multipath = [:euclidex, :fermat, :lcm, :mannadiv, :wensley]
+singlepath = [:cohencu, :freire1, :freire2, :petter1, :petter2, :petter3, :petter4]
+multipath = [:divbin, :euclidex, :fermat, :lcm, :mannadiv, :wensley]
 
-const suite = BenchmarkGroup()
+const ijcar18 = BenchmarkGroup()
+ijcar18["singlepath"] = BenchmarkGroup()
+ijcar18["multipath"] = BenchmarkGroup()
 
-for loop in multipath
-    loopstr = eval(loop)
-    suite[string(loop)] = @benchmarkable aligator($(loopstr))
-end 
+macro createbenchmarks(suite, instances)
+    for loop in instances
+        loopstr = eval(loop)
+        suite[string(loop)] = @benchmarkable aligator($(loopstr))
+    end 
+end
 
-tune!(suite)
-result = run(suite)
+@createbenchmarks ijcar18["singlepath"] singlepath
+@createbenchmarks ijcar18["multipath"] multipath
