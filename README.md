@@ -1,4 +1,7 @@
-# Aligator.jl - A Julia package for loop invariant generation
+# Aligator.jl
+> Automated Loop Invariant Generation by Algebraic Techniques Over the Rationals.
+
+Aligator.jl is a Julia package for the automated generation of loop invariants. It supersedes the Mathematica package [Aligator](https://github.com/ahumenberger/aligator).
 
 ## Installation
 
