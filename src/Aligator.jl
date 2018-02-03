@@ -14,6 +14,7 @@ using Cxx
 include("utils.jl")
 include("closedform.jl")
 include("recurrence.jl")
+include("loop.jl")
 include("invariants.jl")
 include("parse_julia.jl")
 include("dependencies.jl")
