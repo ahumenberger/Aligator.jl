@@ -16,12 +16,45 @@ struct MultiLoop <: Loop
     vars::Array{Sym,1}
 end
 
+function Base.show(io::IO, body::LoopBody)
+    print(io, "[")
+    join(io, body, ", ")
+    println(io, "]")
+end
+
+function Base.showcompact(io::IO, loop::SingleLoop)
+    Base.show(io, loop.body)
+end
+
+function Base.show(io::IO, loop::SingleLoop)
+    if get(io, :compact, false)
+        Base.show(io, loop.body)
+    else
+        println(io, "$(length(loop.body))-element $(typeof(loop)):")
+        for l in loop.body
+            print(io, "  $(l)\n")
+        end
+    end
+end
+
+function Base.show(io::IO, loop::MultiLoop)
+    println(io, "$(length(loop.branches))-element $(typeof(loop)):")
+    for l in loop.branches
+        print(io, "  ")
+        showcompact(io, l)
+        print(io, "\n")
+    end
+end
+
+
 #-------------------------------------------------------------------------------
 
 function invariants(loop::SingleLoop)
     I, loopvars, expvars, lc = preprocess([loop], singleloop = true)[1]
     elim = collect(Iterators.drop(Singular.gens(base_ring(I)), length(loopvars)*2))
+    # println("stillworks")
     Singular.eliminate(I, prod(elim))
+    # println("what about now")
 end
 
 function invariants(loop::MultiLoop)
@@ -71,6 +104,7 @@ function preprocess(loops::Array{SingleLoop,1}; singleloop::Bool = false)
     # assume loops[i].vars == loops[j].vars for all i,j
 
     cfslist = [rec_solve(sl.body) for sl in loops]
+    println("Closed forms:", cfslist)
 
     preprocessed = []
     for (i, cfs) in enumerate(cfslist)
@@ -112,8 +146,10 @@ function preprocess(loops::Array{SingleLoop,1}; singleloop::Bool = false)
 
         # dependencies
         if !isempty(exp)
+            # println("Something with dependencies?????")            
             A = dependencies(exp, variables = expsym)
             if A != nothing
+                # println("Something with imap?????")
                 I += imap(A, R)
             else
                 warn("No algebraic dependencies among exponentials! Is that correct?")
@@ -123,6 +159,7 @@ function preprocess(loops::Array{SingleLoop,1}; singleloop::Bool = false)
         res = (I, loopvars, expvars, lc)
         push!(preprocessed, res)
     end
+    # println(preprocessed)
     preprocessed
 end
 
