@@ -282,7 +282,6 @@ function extract_loop(str::String)
     for (i, loop) in enumerate(loops)
         lc = Sym("n_$(i)")
         recs = recurrence.(symbolic(loop, lc, recvars))
-        println("Recurrences: ", recs)
         loop = SingleLoop(LoopBody(recs), lc, Sym.(string.(variables(loop))))
         push!(ls, loop)
     end

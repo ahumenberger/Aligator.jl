@@ -16,6 +16,7 @@ end
 
 struct ClosedFormSystem
     cforms::Array{ClosedForm,1}
+    lc::Sym
     vars::Array{Sym,1}
 end
 

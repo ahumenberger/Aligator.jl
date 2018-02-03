@@ -1,7 +1,7 @@
 
 module Aligator
 
-export aligator
+export aligator, extract_loop, closed_forms, invariants
 
 using PyCall
 using SymPy
@@ -22,12 +22,18 @@ include("singular_imap.jl")
 
 
 function aligator(str::String)
-    _, time = @timed begin
+    _, total = @timed begin
+
         loop, time = @timed extract_loop(str)
-        println("Time need for recurrence extraction: $(time)")
-        invs = invariants(loop)
+        println("Recurrence extraction: $(time)s")
+
+        cforms, time = @timed closed_forms(loop)
+        println("Recurrence solving: $(time)s")
+        
+        invs, time = @timed invariants(cforms)
+        println("Ideal computation: $(time)s")
     end
-    println("\nTotal time needed: $(time)")
+    println("\nTotal time needed: $(total)s")
     
     return invs
 end

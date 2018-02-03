@@ -43,36 +43,45 @@ function Base.show(io::IO, loop::MultiLoop)
 end
 
 function closed_forms(loop::MultiLoop)
-    [ClosedFormSystem(rec_solve(l.body), l.vars) for l in loop.branches]
+    [ClosedFormSystem(rec_solve(l.body), l.lc, l.vars) for l in loop.branches]
 end
 
 function closed_forms(loop::SingleLoop)
-    ClosedFormSystem(rec_solve(loop.body), loop.vars)
+    ClosedFormSystem(rec_solve(loop.body), loop.lc, loop.vars)
 end
 
 
 #-------------------------------------------------------------------------------
 
-function invariants(loop::SingleLoop)
-    I, loopvars, expvars, lc = preprocess([loop], singleloop = true)[1]
+function invariants(cforms::ClosedFormSystem)
+    I, loopvars, expvars, lc = preprocess([cforms], singleloop = true)[1]
     elim = collect(Iterators.drop(Singular.gens(base_ring(I)), length(loopvars)*2))
-    # println("stillworks")
-    Singular.eliminate(I, prod(elim))
-    # println("what about now")
+    Singular.eliminate(I, prod(elim))     
+end
+
+function invariants(loop::SingleLoop)
+    invariants(closed_forms(loop))
 end
 
 function invariants(loop::MultiLoop)
-    loopvars = string.(loop.vars)
+    invariants(closed_forms(loop))
+end
+
+function invariants(loops::Array{ClosedFormSystem,1})
+    if length(loops) == 0
+        warn("No loops given!")
+        return
+    end
+    loopvars = string.(loops[1].vars)
     inivars = ["$(v)_0" for v in loopvars]
     R, _ = PolynomialRing(QQ, [inivars; loopvars])
 
-    preprocessed, time = @timed preprocess(loop.branches)
-    println("Time need for recurrence solving: $(time)")
+    preprocessed = preprocess(loops)
+
     index = 0
     I_new = initial_ideal(loopvars)
     I_o = 1
     I_n = nothing
-    _, time = @timed begin
     while I_n != I_o
         I_o = I_n
         for sys in preprocessed
@@ -97,22 +106,21 @@ function invariants(loop::MultiLoop)
         I_n = groebner(imap(I_n, R))
         # println("Final ideal: ", I_n)
     end
-    end
-    println("Time need for invariant ideal computation: $(time)")
     I_n
 end
 
 #-------------------------------------------------------------------------------
 
-function preprocess(loops::Array{SingleLoop,1}; singleloop::Bool = false)
+function preprocess(loops::Array{ClosedFormSystem,1}; singleloop::Bool = false)
     # assume loops[i].vars == loops[j].vars for all i,j
 
-    cfslist = [rec_solve(sl.body) for sl in loops]
-    println("Closed forms:", cfslist)
+    # cfslist = [rec_solve(sl.body) for sl in loops]
+    # cfslist = loops.cforms
+    # println("Closed forms:", cfslist)
 
     preprocessed = []
-    for (i, cfs) in enumerate(cfslist)
-
+    for (i, loop) in enumerate(loops)
+        cfs = loop.cforms
         exp = union(exponentials.(cfs)...)
         exp = filter(x -> x!=Sym(1), exp)
         
