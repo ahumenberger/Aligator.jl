@@ -37,3 +37,27 @@ function coeff_rem(expr::Sym, t::Sym)
     c = SymPy.coeff(expr, t)
     return c, expr - c*t
 end
+
+function summands(expr::Sym)
+    expr = expand(expr)
+    if funcname(expr) == "Add"
+        return args(expr)
+    end
+    expr
+end
+
+function clear_denom(expr::Sym)
+    ls = summands(expr)
+    ds = denom.(ls)
+    val = lcm2(ds...)
+    expr *= val
+    simplify(expr)
+end
+
+function lcm2(n::Sym, rest::Sym...)
+    lcm(n, lcm2(rest...))
+end
+
+function lcm2()
+    1
+end

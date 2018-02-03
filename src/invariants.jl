@@ -93,9 +93,12 @@ function preprocess(loops::Array{ClosedFormSystem,1}; singleloop::Bool = false)
         # generate basis of closed forms
         function polyfn(cf) 
             if singleloop
-                return Sym("$(Sym(cf.f.x))") - replace_functions(polynomial(cf), 0)
+                expr = Sym("$(Sym(cf.f.x))") - replace_functions(polynomial(cf), 0)
+            else
+                expr = Sym("$(Sym(cf.f.x))_2") - replace_functions(polynomial(cf), 1)
             end
-            return Sym("$(Sym(cf.f.x))_2") - replace_functions(polynomial(cf), 1)
+            # workaround as libsingular crashes when "real" rationals are contained
+            return clear_denom(expr)
         end
         basis = polyfn.(cfs)
 
