@@ -22,10 +22,6 @@ function Base.show(io::IO, body::LoopBody)
     println(io, "]")
 end
 
-function Base.showcompact(io::IO, loop::SingleLoop)
-    Base.show(io, loop.body)
-end
-
 function Base.show(io::IO, loop::SingleLoop)
     if get(io, :compact, false)
         Base.show(io, loop.body)
@@ -40,10 +36,18 @@ end
 function Base.show(io::IO, loop::MultiLoop)
     println(io, "$(length(loop.branches))-element $(typeof(loop)):")
     for l in loop.branches
-        print(io, "  ")
+        print(io, " ")
         showcompact(io, l)
-        print(io, "\n")
+        # print(io, "\n")
     end
+end
+
+function closed_forms(loop::MultiLoop)
+    [ClosedFormSystem(rec_solve(l.body), l.vars) for l in loop.branches]
+end
+
+function closed_forms(loop::SingleLoop)
+    ClosedFormSystem(rec_solve(loop.body), loop.vars)
 end
 
 

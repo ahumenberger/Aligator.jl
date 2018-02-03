@@ -14,6 +14,11 @@ struct HyperClosedForm <: ClosedForm
     coeff::Array{Sym}
 end
 
+struct ClosedFormSystem
+    cforms::Array{ClosedForm,1}
+    vars::Array{Sym,1}
+end
+
 #-------------------------------------------------------------------------------
 
 CFiniteClosedForm(f::SymFunction, n::Sym, exp::Array{Sym}, coeff::Array{Sym}) = CFiniteClosedForm(f, n, exp, coeff, [])
@@ -39,4 +44,17 @@ end
 
 function Base.show(io::IO, cf::ClosedForm)
     print(io, "$(cf.f(cf.n)) = $(poly(cf))")
+end
+
+function Base.show(io::IO, cfs::Aligator.ClosedFormSystem)
+    if get(io, :compact, false)
+        show(io, cfs.cforms)
+    else
+        println(io, "$(length(cfs.cforms))-element $(typeof(cfs)):")
+        for cf in cfs.cforms
+            print(io, " ")
+            showcompact(io, cf)
+            print(io, "\n")
+        end
+    end
 end

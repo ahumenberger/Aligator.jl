@@ -292,6 +292,3 @@ function rec_simplify(processed::Array{<:Recurrence})
     processed
 end
 
-# function closed_forms(loop::MultiLoop)
-#     [rec_solve(l.body) for l in loop.branches]
-# end
