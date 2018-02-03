@@ -22,10 +22,6 @@ function poly(cf::CFiniteClosedForm)
     return sum([ex^cf.n * c for (ex, c) in zip(cf.exp, cf.coeff)])
 end
 
-function Base.show(io::IO, cf::CFiniteClosedForm)
-    print(io, cf.f(cf.n), " Exp: $(cf.exp) Coeff: $(cf.coeff)\n", sympy["pretty"](poly(cf)), "\n")
-end
-
 function polynomial(cf::CFiniteClosedForm) 
     if isempty(cf.expvars)
         return sum(cf.coeff)
@@ -40,3 +36,7 @@ exponentials(cf::ClosedForm) = cf.exp
 function expvars!(cf::ClosedForm, d::Dict{Sym,Sym})
     cf.expvars = replace(cf.exp, d)
 end 
+
+function Base.show(io::IO, cf::ClosedForm)
+    print(io, "$(cf.f(cf.n)) = $(poly(cf))")
+end

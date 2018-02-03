@@ -26,7 +26,7 @@ function relation(r::Recurrence)
 end
 
 function Base.show(io::IO, r::Recurrence)
-    print(io, relation(r))
+    print(io, "$(lhs(r)) = $(rhs(r))")
 end
 
 function hompart(r::Recurrence)
@@ -42,6 +42,14 @@ function rhs(r::Recurrence)
         return -r.inhom
     end
     simplify(-sum([c * r.f(r.n + (i - 1)) for (i, c) in enumerate(r.coeffs[1:end-1])]) - r.inhom)
+end
+
+function lhs(r::Recurrence)
+    t = r.f(r.n + order(r))
+    if length(r.coeffs) > 1
+        t *= r.coeffs[end]
+    end
+    t
 end
 
 function homogeneous(r::Recurrence)
@@ -108,7 +116,7 @@ function closedform(orig::CFiniteRecurrence)
     # println(free_symbols(ansatz(n)))
     unknowns = filter(e -> e != r.n, free_symbols(ansatz))
     system = [Eq(r.f(i), ansatz |> subs(r.n, i)) for i in 0:order(r) - 1]
-    sol = @time solve(system, unknowns)
+    sol = solve(system, unknowns)
     sol = ansatz |> subs(sol)
     if !isempty(init)
         tmp = nothing
@@ -283,3 +291,7 @@ end
 function rec_simplify(processed::Array{<:Recurrence})
     processed
 end
+
+# function closed_forms(loop::MultiLoop)
+#     [rec_solve(l.body) for l in loop.branches]
+# end
