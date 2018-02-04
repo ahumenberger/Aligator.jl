@@ -51,6 +51,9 @@ function invariants(loops::Array{ClosedFormSystem,1})
         I_n = Singular.eliminate(imap(I_new, S) + B, elim)
         I_n = groebner(imap(I_n, R))
         # println("Final ideal: ", I_n)
+        if index > (length(loopvars)+1) * length(loops)
+            warn("something went wrong")
+        end
     end
     I_n
 end

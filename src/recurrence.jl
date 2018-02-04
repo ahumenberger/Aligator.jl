@@ -1,5 +1,7 @@
 
 import Base.show
+import Base.==
+import Base.isequal
 import SymPy.solve
 import SymPy.coeff
 import SymPy.degree
@@ -189,11 +191,16 @@ function subs(cf::ClosedForm, r::CFiniteRecurrence)
     return eq2rec(rel, r.f, r.n)
 end
 
-function rec_solve(recs::Array{<: Recurrence,1})
+function rec_solve(recsorig::Array{<: Recurrence,1})
     # println("Recurrences: ", recs)
-    
-    recs = rec_simplify(Recurrence[], recs...)
+    if length(recsorig) == 0
+        return ClosedForm[]
+    end
+
+    varlist = [(r.f(r.n), r.f) for r in recsorig]
+    recs, varlist = rec_simplify(Recurrence[], varlist, recsorig...)
     # println("Simplifed recurrences: ", recs)
+    # println("Varlist: ", varlist)
     # recs = loop.body
     solved = ClosedForm[]
     solvable = true
@@ -223,7 +230,67 @@ function rec_solve(recs::Array{<: Recurrence,1})
             break
         end
     end
-    solved
+
+    inivars = []
+    for cf in solved
+        inivars = [inivars; initvars(cf)]
+    end
+    inivars = [(SymFunction(string(func(x))), args(x)[1]) for x in inivars]
+    inivars = filter(x -> x[2]>0, inivars)
+    iniexpr = init_expr(recsorig, inivars)
+    # println("Initial expression: ", iniexpr)
+
+    for var in varlist
+        # TODO: assume var is something like (t(n-1), x)
+        fn = SymFunction(string(func(var[1])))
+        if fn != var[2]
+            for cf in solved
+                if cf.f == fn
+                    sh = args(var[1])[1] - cf.n
+                    tmp = shift(cf, sh)
+                    tmp.f = var[2]
+                    push!(solved, tmp)
+                    break
+                end
+            end
+        end
+    end
+    [subs!(cf, iniexpr...) for cf in solved]
+end
+
+function ==(f::SymFunction, g::SymFunction)
+    isequal(Sym(f.x), Sym(g.x))
+end
+
+function init_expr(recs::Array{<:Recurrence,1}, vars::Array{Tuple{SymFunction,Sym},1})
+    initrules = Pair[]
+    for (var, idx) in vars
+        rec = [r for r in recs if r.f == var][1]
+        rhs = initial(rec, idx)
+        while true
+            newvars = [(SymFunction(string(func(x))), args(t)[1]) for t in symfunctions(rhs) if args(t)[1] > 0]
+            # newvars = filter(x -> x[2]>0, newvars)
+            if isempty(newvars)
+                break
+            end
+            rules = init_expr(recs, newvars)
+            rhs = (rhs |> subs(rules)) |> simplify
+        end
+        push!(initrules, Pair(var(idx), rhs))
+    end
+    initrules
+end
+
+function initial(r::CFiniteRecurrence, n::Sym)
+    if n < order(r)
+        error("Cannot give expression for $(r.f(n))")
+    end
+    i = n - order(r)
+    rhs(r) |> subs(r.n, i)
+end
+
+function initvars(r::ClosedForm)
+    symfunctions(rhs(r))
 end
 
 #-------------------------------------------------------------------------------
@@ -256,6 +323,21 @@ function rec_subs(r::Recurrence, rec::Recurrence)
     eq2rec(r.f(r.n+1) - simplify(expr), r.f, r.n)
 end
 
+function rec_subs(expr::Sym, rec::Recurrence)
+    # println("subs $(rec) in $(r)")
+    # expr = rhs(r)
+    fns = symfunctions(expr)
+    w0 = Wild("w0")
+    args = [get(match(rec.f(w0), fn), w0, nothing) for fn in fns]
+    args = filter(x -> x!=nothing, args)
+    for arg in args
+        diff = rec.n + 1 - arg
+        sub = rhs(rec) |> subs(rec.n, rec.n - diff)
+        expr = expr |> subs(rec.f(arg), sub)
+    end
+    simplify(expr)
+end
+
 # function rec_simplify(recs::Array{<:Recurrence,1})
 #     # processed = Recurrence[]
 #     # for rec in recs
@@ -274,21 +356,25 @@ end
 #     rec_simplify(Recurrence[], recs...)
 # end
 
-function rec_simplify(processed::Array{<:Recurrence}, rec::Recurrence, recs::Recurrence...)
+function rec_simplify(processed::Array{<:Recurrence}, varlist::Array{Tuple{Sym,SymFunction},1}, rec::Recurrence, recs::Recurrence...)
     expr = rhs(rec)
     # fns = symfunctions(expr)
     # w0 = Wild("w0")
     # args = [match(rec.f(w0), expr)[w0] for fn in fns]
     if !contains_func(expr, rec.f) # not a real recurrence
+        varlist = [var_simplify(var, rec) for var in varlist]
         processed = [rec_subs(r, rec) for r in processed]
         recs = [rec_subs(r, rec) for r in recs]
     else
         push!(processed, rec)
     end
-    rec_simplify(processed, recs...)
+    rec_simplify(processed, varlist, recs...)
 end
 
-function rec_simplify(processed::Array{<:Recurrence})
-    processed
+function rec_simplify(processed::Array{<:Recurrence}, varlist::Array{Tuple{Sym,SymFunction},1})
+    processed, varlist
 end
 
+function var_simplify(var::Tuple{Sym,SymFunction}, rec::Recurrence)
+    rec_subs(var[1], rec), var[2]
+end
