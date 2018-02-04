@@ -5,18 +5,21 @@ simpleloop = """
     end
 """
 
-macro petter(n)
-    loop = """while true
+# macro petter(n)
+#     loop = """while true
+#         x = x + y^$n
+#         y = y + 1
+#     end
+#     """
+#     eval(Expr(:(=), Symbol("petter$n"), loop))
+# end
+
+petter(n) = """
+    while true
         x = x + y^$n
         y = y + 1
     end
-    """
-    eval(Expr(:(=), Symbol("petter$n"), loop))
-end
-
-for i in 1:20
-    @petter(i)
-end
+"""
 
 cohencu = """
     while n<=N
