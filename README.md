@@ -5,6 +5,16 @@ Aligator.jl is a Julia package for the automated generation of loop invariants. 
 
 ## Installation
 
+```julia
+julia> Pkg.add("Cxx")
+julia> Pkg.add("Nemo")
+julia> Pkg.checkout("Nemo")
+julia> Pkg.clone("https://github.com/oscar-system/Singular.jl")
+julia> Pkg.build("Singular")
+
+julia> Pkg.clone("https://github.com/ahumenberger/Aligator.jl")
+```
+
 ## Quick Start
 
 ```julia
