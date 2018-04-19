@@ -28,6 +28,40 @@ julia> loop = """
 julia> aligator(loop)
 ```
 
+## Experimental results
+
+The following tables compare `Aligator.jl` to the Mathematica package [Aligator](https://github.com/ahumenberger/aligator).
+The most time in `Aligator.jl` is consumed by solving the recurrences. Experiments indicated that using to symbolic manipulation library `SymEngine.jl` (instead of `SymPy.jl`) improves the performance drastically.
+
+<table border="0">
+<tr><th></th><th></th></tr>
+<tr><td>
+
+| Single-path | Mathematica | Julia |
+| ----------- | ----------- | ----- |
+| `cohencu`     | `0.072`       | `2.879` |
+| `freire1`     | `0.016`       | `1.159` |
+| `freire2`     | `0.062`       | `2.540` |
+| `petter1`     | `0.015`       | `0.876` |
+| `petter2`     | `0.026`       | `1.500` |
+| `petter3`     | `0.035`       | `2.080` |
+| `petter4`     | `0.042`       | `3.620` |
+
+</td><td>
+
+| Multi-path | Mathematica | Julia |
+| ---------- | ----------- | ----- |
+| `divbin`     |    `0.134`     | `1.760`  |
+| `euclidex`   |    `0.433`     | `3.272`  |
+| `fermat`     |    `0.045`     | `2.159`  |
+| `knuth`      |    `55.791`    | `12.661` |
+| `lcm`        |    `0.051`     | `2.089`  |
+| `mannadiv`   |    `0.022`     | `1.251`  |
+| `wensley`    |    `0.124`     | `1.969`  |
+
+</td></tr>
+</table>
+
 ## Publications
 
 1. A. Humenberger, M. Jaroschek, L. Kovács. Invariant Generation for Multi-Path Loops with Polynomial Assignments. In *Verification, Model Checking, and Abstract Interpretation (VMCAI)*, 2018.
