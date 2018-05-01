@@ -30,8 +30,7 @@ julia> aligator(loop)
 
 ## Experimental results
 
-The following tables compare `Aligator.jl` to the Mathematica package [Aligator](https://github.com/ahumenberger/aligator).
-The most time in `Aligator.jl` is consumed by solving the recurrences. Experiments indicated that using to symbolic manipulation library `SymEngine.jl` (instead of `SymPy.jl`) improves the performance drastically.
+The following tables compare `Aligator.jl` to the Mathematica package [Aligator](https://github.com/ahumenberger/aligator). The running time is given in seconds.
 
 <table border="0">
 <tr><th></th><th></th></tr>
@@ -61,6 +60,8 @@ The most time in `Aligator.jl` is consumed by solving the recurrences. Experimen
 
 </td></tr>
 </table>
+
+The most time in `Aligator.jl` is consumed by solving the recurrences. Experiments indicated that using the symbolic manipulation library `SymEngine.jl` (instead of `SymPy.jl`) improves the performance drastically.
 
 ## Publications
 
