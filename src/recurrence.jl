@@ -1,6 +1,6 @@
 
 import Base.show
-import Base.==
+# import Base.==
 import Base.isequal
 import SymPy.solve
 import SymPy.coeff
@@ -118,6 +118,8 @@ function closedform(orig::CFiniteRecurrence)
     # println(free_symbols(ansatz(n)))
     unknowns = filter(e -> e != r.n, free_symbols(ansatz))
     system = [Eq(r.f(i), ansatz |> subs(r.n, i)) for i in 0:order(r) - 1]
+    println("System:")
+    println(system)
     sol = solve(system, unknowns)
     sol = ansatz |> subs(sol)
     if !isempty(init)
@@ -258,14 +260,16 @@ function rec_solve(recsorig::Array{<: Recurrence,1})
     [subs!(cf, iniexpr...) for cf in solved]
 end
 
-function ==(f::SymFunction, g::SymFunction)
-    isequal(Sym(f.x), Sym(g.x))
-end
+# function ==(f::SymFunction, g::SymFunction)
+#     isequal(Sym(f.x), Sym(g.x))
+# end
 
 function init_expr(recs::Array{<:Recurrence,1}, vars::Array{Tuple{SymFunction,Sym},1})
     initrules = Pair[]
     for (var, idx) in vars
-        rec = [r for r in recs if r.f == var][1]
+        println("recs: ", recs)
+        println("var: ", var)
+        rec = [r for r in recs if isequal(Sym(r.f.x), Sym(var.x))][1]
         rhs = initial(rec, idx)
         while true
             newvars = [(SymFunction(string(func(x))), args(t)[1]) for t in symfunctions(rhs) if args(t)[1] > 0]

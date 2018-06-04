@@ -1,6 +1,7 @@
 # using SymPy
 
 import Base.push!
+import Base.==
 import Base: push!, isempty, start, next, done, in
 
 # struct AssignPair

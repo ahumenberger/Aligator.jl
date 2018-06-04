@@ -61,3 +61,11 @@ end
 function lcm2()
     1
 end
+
+function Base.isequal(f::SymFunction, g::SymFunction)
+    println("check: ", Sym(f.x), " | ", Sym(g.x))
+    isequal(Sym(f.x), Sym(g.x))
+end
+
+symfunc(expr::Sym) = SymFunction(string(func(expr)))
+symarg(expr::Sym) = args(expr)[1]
