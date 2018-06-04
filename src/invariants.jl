@@ -2,7 +2,7 @@
 function invariants(cforms::ClosedFormSystem)
     I, loopvars, expvars, lc = preprocess([cforms], singleloop = true)[1]
     elim = collect(Iterators.drop(Singular.gens(base_ring(I)), length(loopvars)*2))
-    Singular.eliminate(I, prod(elim))     
+    Singular.eliminate(I, elim...)
 end
 
 function invariants(loop::SingleLoop)
@@ -46,9 +46,9 @@ function invariants(loops::Array{ClosedFormSystem,1})
         # println("Basis (after map): ", b)
         B = Singular.Ideal(S, b)
 
-        elim = imap(prod(elim), S)
+        elim = imap.(elim, S)
 
-        I_n = Singular.eliminate(imap(I_new, S) + B, elim)
+        I_n = Singular.eliminate(imap(I_new, S) + B, elim...)
         I_n = groebner(imap(I_n, R))
         # println("Final ideal: ", I_n)
         if index > (length(loopvars)+1) * length(loops)
@@ -137,7 +137,7 @@ function invariants(I_old::sideal, I_new::sideal, loopvars::Array{String,1}, exp
     I_old = imap(I_old, R)
 
     elimvars = collect(Iterators.drop(svars, elimcnt))
-    Singular.eliminate(I_old + I_new, prod(elimvars))
+    Singular.eliminate(I_old + I_new, elimvars...)
 end
 
 function var_order(loopvars::Array{String,1}, expvars::Array{String,1}, lc::String, index::Int)
