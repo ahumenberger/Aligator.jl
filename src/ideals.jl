@@ -107,5 +107,5 @@ groebner(ideal::Singular.sideal) = std(ideal)
 function eliminate(basis::Array{Sym, 1}, elim::Array{Sym, 1})
     ideal, varmap = Ideal(basis)
     vars = [varmap[string(v)] for v in elim]
-    return Singular.eliminate(ideal, prod(vars))
+    return Singular.eliminate(ideal, vars...)
 end
