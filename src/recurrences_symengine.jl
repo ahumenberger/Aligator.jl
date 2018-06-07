@@ -1,6 +1,11 @@
 module Recurrences
-
 using SymEngine
+
+
+const Symbolic = SymEngine.Basic
+
+include("closedform.jl")
+
 # using PyCall
 
 import Base.==
@@ -16,7 +21,6 @@ export normalize!, shift!, replace_n!
 export RecSystem
 export solve, simplify
 
-const Symbolic = SymEngine.Basic
 
 #-------------------------------------------------------------------------------
 
@@ -90,6 +94,55 @@ function CFiniteRecurrence(eq::Symbolic, fn::SymFunction, lc::Symbolic, minarg::
     return CFiniteRecurrence(coeffs, fn, lc, eq, minarg)
 end
 
+function solve(orig::CFiniteRecurrence)
+    # println("Original: ", orig)
+    r = homogeneous(orig)
+    # println("Homogeneous: ", r)
+    
+    # shift = order(r) - order(orig)
+    # rh = rhs(orig)
+    # ord = order(orig)
+    # init = Dict{Sym,Sym}([(orig.f(i), rh |> replace(orig.n, i-ord)) for i in ord:shift+ord-1])
+    # init = rewrite(init)
+
+    # rel = standardform(r)
+    # println("Homogeneous: ", homogeneous(r))
+    # fns = function_symbols(rel)
+    # lbd = symbols("lbd")
+    # sub = [(fn, lbd^(arg(fn) - r.n)) for fn in fns if name(fn) = name(r.f)]
+    # cpoly   = rel |> subs(sub...)
+    # println("CPoly: ", cpoly |> simplify)
+    # # factors = factor_list(cpoly)
+    # roots   = polyroots(cpoly)
+    # # d = hcat([[uniquevar() * r.n^i, z^r.n] for (z, m) in roots for i in 0:m - 1])
+    # # println(d[:,2])
+    # ansatz = sum([sum([uniquevar() * r.n^i * z^r.n for i in 0:m - 1]) for (z, m) in roots])
+    # # println(ansatz)
+    # # println(free_symbols(ansatz(n)))
+    # unknowns = filter(e -> e != r.n, free_symbols(ansatz))
+    # system = [Eq(r.f(i), ansatz |> subs(r.n, i)) for i in 0:order(r) - 1]
+    # sol = solve(system, unknowns)
+    # sol = ansatz |> subs(sol)
+    # if !isempty(init)
+    #     tmp = nothing
+    #     while true
+    #         tmp = (sol |> subs(init)) |> simplify
+    #         if tmp == sol
+    #             break
+    #         end
+    #         sol = tmp
+            
+    #     end
+    #     sol = simplify(tmp)
+    # end
+    
+    # exp = [z for (z, _) in roots]
+    # exp = filter(x -> x!=Sym(1), exp)
+    # push!(exp, Sym(1))
+    # coeff = exp_coeffs(sol, [z^r.n for z in exp])
+    # return CFiniteClosedForm(r.f, r.n, exp, coeff)
+end
+
 #-------------------------------------------------------------------------------
 
 function Base.show(io::IO, r::Recurrence)
@@ -97,6 +150,31 @@ function Base.show(io::IO, r::Recurrence)
 end
 
 #-------------------------------------------------------------------------------
+
+"Transforms `r` into a homogeneous recurrence."
+function homogeneous(r::Recurrence)
+    n = r.n
+    if is_homogeneous(r)
+        return r
+    elseif is_polynomial(r.inhom, r.n)
+        d = degree(Poly(r.inhom, n)) |> Int64
+        res = relation(r)
+        for i in 1:d + 1
+            res = (res |> subs(n, n + 1)) - res
+        end
+        res = simplify(res)
+        
+        idx = n + order(r) + d + 1
+        c = coeff(res, r.f(idx))
+        return eq2rec(simplify(res / c), r.f, r.n)
+    else
+        res = hompart(r) / r.inhom
+        res = expand((res |> subs(n, n + 1)) - res)
+        idx = n + order(r) + 1
+        c = coeff(res, r.f(idx))
+        return eq2rec(simplify(res / c), r.f, r.n)
+    end
+end
 
 "Returns the left-hand side of the recurrence equation of `r`."
 lhs(r::Recurrence) = r.f(r.n + order(r) + r.minarg)
@@ -127,6 +205,9 @@ hompart(r::Recurrence) = sum([c * r.f(r.n + r.minarg + (i - 1)) for (i, c) in en
 
 "Returns the inhomogeneous part of `r`."
 inhompart(r::Recurrence) = r.inhom
+
+"Checks if `r` is homogeneous."
+is_homogeneous(r::Recurrence) = inhompart(r) == 0
 
 #-------------------------------------------------------------------------------
 
@@ -237,6 +318,7 @@ r5 = CFiniteRecurrence(d(n+1) - d(n) - 2, d, n, 0, 1)
 
 recsys = RecSystem([r1, r2, r3, r4, r5])
 # simplify(recsys)
+
 
 # function get_func(ex::FunctionSymbol)
 #     args = CVecBasic()
