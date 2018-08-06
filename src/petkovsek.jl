@@ -158,18 +158,18 @@ function tohg(sol, n)
     return prod(result)
 end
 
-function hyper()
+# function hyper()
 
 # end # module
 
 # using SymPy
 # using Petkovsek
 
-@syms n y
+# @syms n y
 
-alghyper([2*n*(n+1), -(n^2 +3*n-2), n-1], n)
+# alghyper([2*n*(n+1), -(n^2 +3*n-2), n-1], n)
 
 # algpoly([3, -n, n-1], 0*n, n)
 # algpoly([n-1, -n, 3], 0*n, n)
-println("alghyper: ", [tohg(sol, n) for sol in alghyper([2*n*(n+1), -(n^2 +3*n-2), n-1], n)])
-println("algpoly: ", algpoly([n*(n + 1), -1*n^2 - 3*n + 2, 2*n - 2], 0*n,n))
+# println("alghyper: ", [tohg(sol, n) for sol in alghyper([2*n*(n+1), -(n^2 +3*n-2), n-1], n)])
+# println("algpoly: ", algpoly([n*(n + 1), -1*n^2 - 3*n + 2, 2*n - 2], 0*n,n))

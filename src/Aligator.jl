@@ -13,6 +13,7 @@ using Cxx
 
 include("utils.jl")
 include("closedform.jl")
+include("petkovsek.jl")
 include("recurrence.jl")
 include("loop.jl")
 include("invariants.jl")

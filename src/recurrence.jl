@@ -9,7 +9,23 @@ import SymPy.subs
 
 abstract type Recurrence end
 
+struct UntypedRecurrence <: Recurrence
+    coeffs::Array{Sym}
+    f::SymFunction
+    n::Sym
+    inhom::Sym
+end
+
 struct CFiniteRecurrence <: Recurrence
+    coeffs::Array{Sym}
+    f::SymFunction
+    n::Sym
+    inhom::Sym
+
+    CFiniteRecurrence(coeffs, f, n, inhom) = all(is_constant.(coeffs)) ? new(coeffs, f, n, inhom) : error("Not a C-finite recurrence")
+end
+
+struct HyperGeomRecurrence <: Recurrence
     coeffs::Array{Sym}
     f::SymFunction
     n::Sym
@@ -18,6 +34,9 @@ end
 
 CFiniteRecurrence(coeffs::Array{Sym}, f::SymFunction, n::Sym) = CFiniteRecurrence(coeffs, f, n, Sym(0))
 CFiniteRecurrence(coeffs::Array{Sym}, f::SymFunction, n::Symbol) = CFiniteRecurrence(coeffs, f, Sym(n))
+
+HyperGeomRecurrence(coeffs::Array{Sym}, f::SymFunction, n::Sym) = HyperGeomRecurrence(coeffs, f, n, Sym(0))
+HyperGeomRecurrence(coeffs::Array{Sym}, f::SymFunction, n::Symbol) = HyperGeomRecurrence(coeffs, f, Sym(n))
 
 function order(r::Recurrence)
     return length(r.coeffs) - 1
@@ -138,6 +157,11 @@ function closedform(orig::CFiniteRecurrence)
     push!(exp, Sym(1))
     coeff = exp_coeffs(sol, [z^r.n for z in exp])
     return CFiniteClosedForm(r.f, r.n, exp, coeff)
+end
+
+function closedform(orig::HyperGeomRecurrence)
+    sol = alghyper(orig.coeffs, orig.n)
+    println("closed form of hypergeom: ", sol)
 end
 
 function exp_coeffs(expr::Sym, exp::Array{Sym,1})
