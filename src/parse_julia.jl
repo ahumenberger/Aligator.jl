@@ -238,7 +238,7 @@ function eq2rec(eq::Sym, fn::SymFunction, lc::Sym)
         c, eq = coeff_rem(eq, fn(lc + i))
         coeffs = [coeffs; c]
     end
-    return CFiniteRecurrence(coeffs, fn, lc, eq)
+    return UntypedRecurrence(coeffs, fn, lc, eq)
 end
 
 #-------------------------------------------------------------------------------

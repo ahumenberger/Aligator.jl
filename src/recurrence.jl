@@ -4,7 +4,7 @@ import Base.==
 import Base.isequal
 import SymPy.solve
 import SymPy.coeff
-import SymPy.degree
+# import SymPy.degree
 import SymPy.subs
 
 abstract type Recurrence end
@@ -22,19 +22,25 @@ struct CFiniteRecurrence <: Recurrence
     n::Sym
     inhom::Sym
 
-    CFiniteRecurrence(coeffs, f, n, inhom) = all(is_constant.(coeffs)) ? new(coeffs, f, n, inhom) : error("Not a C-finite recurrence")
+    CFiniteRecurrence(coeffs, f, n, inhom) = (println(coeffs); println(has_free_symbols.(coeffs)); all(has_free_symbols.(coeffs)) ? new(coeffs, f, n, inhom) : error("Not a C-finite recurrence"))
 end
+
+has_free_symbols(expr::Sym) = isempty(free_symbols(expr))
 
 struct HyperGeomRecurrence <: Recurrence
     coeffs::Array{Sym}
     f::SymFunction
     n::Sym
     inhom::Sym
+
+    HyperGeomRecurrence(coeffs, f, n, inhom) = (println(coeffs); all(is_polynomial.(coeffs, n)) ? new(coeffs, f, n, inhom) : error("Not a hypergeometric recurrence"))
 end
 
+CFiniteRecurrence(r::UntypedRecurrence) = CFiniteRecurrence(r.coeffs, r.f, r.n, r.inhom)
 CFiniteRecurrence(coeffs::Array{Sym}, f::SymFunction, n::Sym) = CFiniteRecurrence(coeffs, f, n, Sym(0))
 CFiniteRecurrence(coeffs::Array{Sym}, f::SymFunction, n::Symbol) = CFiniteRecurrence(coeffs, f, Sym(n))
 
+HyperGeomRecurrence(r::UntypedRecurrence) = HyperGeomRecurrence(r.coeffs, r.f, r.n, r.inhom)
 HyperGeomRecurrence(coeffs::Array{Sym}, f::SymFunction, n::Sym) = HyperGeomRecurrence(coeffs, f, n, Sym(0))
 HyperGeomRecurrence(coeffs::Array{Sym}, f::SymFunction, n::Symbol) = HyperGeomRecurrence(coeffs, f, Sym(n))
 
@@ -78,7 +84,7 @@ function homogeneous(r::Recurrence)
     if is_homogeneous(r)
         return r
     elseif is_polynomial(r.inhom, r.n)
-        d = degree(Poly(r.inhom, n)) |> Int64
+        d = degree(r.inhom, n) |> Int64
         res = relation(r)
         for i in 1:d + 1
             res = (res |> subs(n, n + 1)) - res
@@ -160,8 +166,10 @@ function closedform(orig::CFiniteRecurrence)
 end
 
 function closedform(orig::HyperGeomRecurrence)
+    println(orig)
     sol = alghyper(orig.coeffs, orig.n)
     println("closed form of hypergeom: ", sol)
+    println("closed form sols of hypergeom: ", tohg.(sol, orig.n))
 end
 
 function exp_coeffs(expr::Sym, exp::Array{Sym,1})
@@ -200,7 +208,7 @@ function rec_dependency(indep, dep)
     indep, dep
 end
 
-function subs(cf::ClosedForm, r::CFiniteRecurrence)
+function subs(cf::ClosedForm, r::UntypedRecurrence)
     rel = relation(r)
     rhs = poly(cf)
     fns = symfunctions(rel)
@@ -216,7 +224,7 @@ function subs(cf::ClosedForm, r::CFiniteRecurrence)
 end
 
 function rec_solve(recsorig::Array{<: Recurrence,1})
-    # println("Recurrences: ", recs)
+    println("Recurrences: ", recsorig)
     if length(recsorig) == 0
         return ClosedForm[]
     end
@@ -241,6 +249,15 @@ function rec_solve(recsorig::Array{<: Recurrence,1})
 
         recs = setdiff(recs, indep)
         for rec in indep
+            try
+                rec = CFiniteRecurrence(rec)
+            catch
+                try
+                    rec = HyperGeomRecurrence(rec)
+                catch
+                    error("Recurrence not supported")
+                end
+            end
             cf = closedform(rec)
 
             # TODO: deal with the case when a recurrence is not solvable

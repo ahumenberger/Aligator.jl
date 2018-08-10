@@ -4,6 +4,8 @@ using SymPy
 
 # export algpoly
 
+degree(a::Sym, b::Sym) = SymPy.degree(Poly(a, b))
+
 macro log(var)
     println("$var: ", eval(var))
     return eval(var)
@@ -107,7 +109,7 @@ function alghyper(polylist, n)
                 push!(plist, pi)
             end
 
-            m = maximum([degree(Poly(p, n)) for p in plist])
+            m = maximum([degree(p, n) for p in plist])
             alpha = [coeff(expand(p), n^m) for p in plist]
             @syms z
             zpol = 0*z
