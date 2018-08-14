@@ -172,8 +172,16 @@ function exponentials(expr::Sym, n::Sym)
     if isempty(d) || n in free_symbols(d[c])
         return 1
     end
-
     d[b]^d[c]
+end
+
+function factorials(expr::Sym, n::Sym)
+    b = Wild("b")
+    d = match(factorial(n + b), expr)
+    if isempty(d) || n in free_symbols(d[b])
+        return 1
+    end
+    d[b]
 end
 
 function closedform(orig::HyperGeomRecurrence)
@@ -202,21 +210,21 @@ function closedform(orig::HyperGeomRecurrence)
     # c = Wild("c")
     # d = Wild("d")
 
-    abc = [exponentials(term, orig.n) for term in hgterms for arg in factors_summands(term)]
-    # abcd = [get(match(factorial(orig.n+b), arg), b, 1) for term in hgterms for arg in factors_summands(term)]
-    # println(hgterms[1])
-    # println(hgterms[1] |> expand)
+    expseq = Vector{Vector{Sym}}([])
+    factseq = Vector{Vector{Sym}}([])
 
-    # abc = [factors_summands(term) for term in hgterms]
+    for (i, term) in enumerate(hgterms)
+        exps = [exponentials(arg, orig.n) for arg in factors_summands(term)]
+        fact = [factorials(arg, orig.n) for arg in factors_summands(term)]
 
-    println(abc)
-    println(abcd)
+        aux = prod([factorial(orig.n + f) for f in fact]) * prod(exps .^ orig.n)
+        coeffs[i] = coeffs[i]*term/aux
 
-    # println("Matrix: ", matrix)
-    # svals = [orig.f(i) for i in 0:length(hgterms)-1]
-    # sol = solve()
-    # println("closed form of hypergeom: ", sol)
-    # println("closed form sols of hypergeom: ", tohg.(sol, orig.n))
+        push!(expseq, exps)
+        push!(factseq, fact)
+    end
+
+    HyperGeomClosedForm(orig.f, orig.n, expseq, factseq, coeffs)
 end
 
 function exp_coeffs(expr::Sym, exp::Array{Sym,1})

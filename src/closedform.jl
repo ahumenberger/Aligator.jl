@@ -8,10 +8,14 @@ mutable struct CFiniteClosedForm <: ClosedForm
     expvars::Array{Sym}
 end
 
-struct HyperClosedForm <: ClosedForm
-    exp::Array{Sym} # TODO: do exponentials contain loop counter?
-    fact::Array{Sym}
-    coeff::Array{Sym}
+mutable struct HyperGeomClosedForm <: ClosedForm
+    f::SymFunction
+    n::Sym
+    exp::Vector{Vector{Sym}}  # contains b for b^n
+    fact::Vector{Vector{Sym}} # contains b for factorial(n+b)
+    coeff::Vector{Sym}
+    expvars::Vector{Vector{Sym}}
+    factvars::Vector{Vector{Sym}}
 end
 
 struct ClosedFormSystem
@@ -23,6 +27,7 @@ end
 #-------------------------------------------------------------------------------
 
 CFiniteClosedForm(f::SymFunction, n::Sym, exp::Array{Sym}, coeff::Array{Sym}) = CFiniteClosedForm(f, n, exp, coeff, [])
+HyperGeomClosedForm(f::SymFunction, n::Sym, exp::Vector{Vector{Sym}}, fact::Vector{Vector{Sym}}, coeff::Vector{Sym}) = HyperGeomClosedForm(f, n, exp, fact, coeff, [], [])
 
 function shift(cf::CFiniteClosedForm, sh::Sym)
     coeff = copy(cf.coeff)
@@ -37,11 +42,22 @@ function poly(cf::CFiniteClosedForm)
     return sum([ex^cf.n * c for (ex, c) in zip(cf.exp, cf.coeff)])
 end
 
-function rhs(cf::CFiniteClosedForm)
+function poly(cf::HyperGeomClosedForm)
+    return sum([prod(e .^ cf.n)*prod(factorial.(f .+ cf.n))*c for (e, f, c) in zip(cf.exp, cf.fact, cf.coeff)])
+end
+
+function rhs(cf::ClosedForm)
     poly(cf)
 end
 
 function subs!(cf::CFiniteClosedForm, x::Pair...)
+    if !isempty(x)
+        cf.coeff = [c |> subs(x...) for c in cf.coeff]
+    end
+    cf
+end
+
+function subs!(cf::ClosedForm, x::Pair...)
     if !isempty(x)
         cf.coeff = [c |> subs(x...) for c in cf.coeff]
     end
@@ -57,11 +73,24 @@ function polynomial(cf::CFiniteClosedForm)
     # error("No expvars given. This should not happen.")
 end
 
-exponentials(cf::ClosedForm) = cf.exp
+function polynomial(cf::HyperGeomClosedForm) 
+    return sum([prod(e .^ cf.n)*prod(factorial.(f .+ cf.n))*c for (e, f, c) in zip(cf.expvars, cf.factvars, cf.coeff)])
+end
+
+exponentials(cf::ClosedForm) = flattenall(cf.exp)
 
 function expvars!(cf::ClosedForm, d::Dict{Sym,Sym})
     cf.expvars = replace(cf.exp, d)
-end 
+end
+
+factorials(cf::HyperGeomClosedForm) = flattenall(cf.fact)
+factorials(cf::CFiniteClosedForm) = Vector{Sym}([])
+
+function factvars!(cf::HyperGeomClosedForm, d::Dict{Sym,Sym})
+    cf.factvars = replace(cf.fact, d)
+end
+function factvars!(cf::CFiniteClosedForm, d::Dict{Sym,Sym})
+end
 
 function Base.show(io::IO, cf::ClosedForm)
     print(io, "$(cf.f(cf.n)) = $(poly(cf))")
