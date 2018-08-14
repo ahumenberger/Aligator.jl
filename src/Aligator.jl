@@ -41,3 +41,9 @@ function aligator(str::String)
 end
 
 end # module
+
+include("../benchmark/singlepath.jl")
+include("../benchmark/multipath.jl")
+
+singlepath = [:cohencu, :freire1, :freire2, :(petter(1)), :(petter(2)), :(petter(3)), :(petter(4))]
+multipath = [:divbin, :euclidex, :fermat, :knuth, :lcm, :mannadiv, :wensley]
