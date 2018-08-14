@@ -257,13 +257,6 @@ end
 
 #-------------------------------------------------------------------------------
 
-function flattenall(a::AbstractArray)
-    while any(x->typeof(x)<:AbstractArray, a)
-        a = collect(Iterators.flatten(a))
-    end
-    return a
-end
-
 function extract_loop(str::String)
     loops = extract_assign(parse(str), 0)
     loops = transform(loops, CompoundStmt(), CompoundStmt())

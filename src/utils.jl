@@ -33,6 +33,13 @@ end
 #     return show(io, Sym(f.x))
 # end
 
+function flattenall(a::AbstractArray)
+    while any(x->typeof(x)<:AbstractArray, a)
+        a = collect(Iterators.flatten(a))
+    end
+    return a
+end
+
 function coeff_rem(expr::Sym, t::Sym)
     c = SymPy.coeff(expr, t)
     return c, expr - c*t
@@ -43,7 +50,24 @@ function summands(expr::Sym)
     if funcname(expr) == "Add"
         return args(expr)
     end
-    expr
+    Tuple{Sym}(expr)
+end
+
+function factors2(expr::Sym)
+    expr = expand(expr)
+    if funcname(expr) == "Mul"
+        return args(expr)
+    end
+    Tuple{Sym}(expr)
+end
+
+function factors_summands(expr::Sym)
+    sargs = summands(expr) |> collect
+    fargs = flattenall([factors2(arg) |> collect for arg in sargs])
+    if sargs == fargs
+        return fargs
+    end
+    flattenall([factors_summands(arg) for arg in fargs])
 end
 
 function clear_denom(expr::Sym)

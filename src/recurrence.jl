@@ -165,11 +165,58 @@ function closedform(orig::CFiniteRecurrence)
     return CFiniteClosedForm(r.f, r.n, exp, coeff)
 end
 
+function exponentials(expr::Sym, n::Sym)
+    b = Wild("b")
+    c = Wild("c")
+    d = match(b^(c*n), expr)
+    if isempty(d) || n in free_symbols(d[c])
+        return 1
+    end
+
+    d[b]^d[c]
+end
+
 function closedform(orig::HyperGeomRecurrence)
     println(orig)
-    sol = alghyper(orig.coeffs, orig.n)
-    println("closed form of hypergeom: ", sol)
-    println("closed form sols of hypergeom: ", tohg.(sol, orig.n))
+    hgterms = tohg.(alghyper(orig.coeffs, orig.n), orig.n)
+    if isempty(hgterms)
+        error("No hypergeometric solution for ", orig)
+    end
+    println("HG terms: ", hgterms)
+
+    matr = [hgterms[j] |> SymPy.subs(orig.n, i)  for i in 0:length(hgterms)-1, j in 1:length(hgterms)]
+    println("Matrix:"); println(matr)
+    unkn = [uniquevar() for i in 0:length(hgterms)-1]
+    println("Unknowns: ", unkn)
+    sval = [orig.f(i) for i in 0:length(hgterms)-1]
+    println("Svals: ", sval)
+    sys = (matr * unkn) .- sval
+    println("System: ", sys)
+    sol = solve(sys, unkn)
+    println("Solution: ", sol)
+    coeffs = collect(values(sol))
+    println("coeffs: ", coeffs)
+    println("closed form: ", simplify.(hgterms .* coeffs))
+
+    b = Wild("b")
+    # c = Wild("c")
+    # d = Wild("d")
+
+    abc = [exponentials(term, orig.n) for term in hgterms for arg in factors_summands(term)]
+    # abcd = [get(match(factorial(orig.n+b), arg), b, 1) for term in hgterms for arg in factors_summands(term)]
+    # println(hgterms[1])
+    # println(hgterms[1] |> expand)
+
+    # abc = [factors_summands(term) for term in hgterms]
+
+    println(abc)
+    println(abcd)
+
+    # println("Matrix: ", matrix)
+    # svals = [orig.f(i) for i in 0:length(hgterms)-1]
+    # sol = solve()
+    # println("closed form of hypergeom: ", sol)
+    # println("closed form sols of hypergeom: ", tohg.(sol, orig.n))
 end
 
 function exp_coeffs(expr::Sym, exp::Array{Sym,1})
