@@ -135,7 +135,7 @@ function closedform(orig::CFiniteRecurrence)
     
     exp = [z for (z, _) in roots]
     exp = filter(x -> x!=Sym(1), exp)
-    push!(exp, Sym(1))
+    # push!(exp, Sym(1))
     coeff = exp_coeffs(sol, [z^r.n for z in exp])
     return CFiniteClosedForm(r.f, r.n, exp, coeff)
 end
@@ -268,13 +268,13 @@ function init_expr(recs::Array{<:Recurrence,1}, vars::Array{Tuple{SymFunction,Sy
         rec = [r for r in recs if r.f == var][1]
         rhs = initial(rec, idx)
         while true
-            newvars = [(SymFunction(string(func(x))), args(t)[1]) for t in symfunctions(rhs) if args(t)[1] > 0]
+            newvars = [(SymFunction(string(func(t))), args(t)[1]) for t in symfunctions(rhs) if args(t)[1] > 0]
             # newvars = filter(x -> x[2]>0, newvars)
             if isempty(newvars)
                 break
             end
             rules = init_expr(recs, newvars)
-            rhs = (rhs |> subs(rules)) |> simplify
+            rhs = (rhs |> subs(rules...)) |> simplify
         end
         push!(initrules, Pair(var(idx), rhs))
     end

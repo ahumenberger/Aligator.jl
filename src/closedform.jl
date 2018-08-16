@@ -48,7 +48,7 @@ function subs!(cf::CFiniteClosedForm, x::Pair...)
     cf
 end
 
-function polynomial(cf::CFiniteClosedForm) 
+function polynomial(cf::CFiniteClosedForm)
     if isempty(cf.expvars)
         return sum(cf.coeff)
     else

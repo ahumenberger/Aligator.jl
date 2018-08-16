@@ -26,13 +26,13 @@ function aligator(str::String)
     _, total = @timed begin
 
         loop, time = @timed extract_loop(str)
-        println("Recurrence extraction: $(time)s")
+        info("Recurrence extraction: $(time)s")
 
         cforms, time = @timed closed_forms(loop)
-        println("Recurrence solving: $(time)s")
+        info("Recurrence solving: $(time)s")
         
         invs, time = @timed invariants(cforms)
-        println("Ideal computation: $(time)s")
+        info("Ideal computation: $(time)s")
     end
     println("\nTotal time needed: $(total)s")
     
