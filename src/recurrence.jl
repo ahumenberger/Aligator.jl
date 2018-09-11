@@ -135,7 +135,7 @@ function closedform(orig::CFiniteRecurrence)
     
     exp = [z for (z, _) in roots]
     exp = filter(x -> x!=Sym(1), exp)
-    # push!(exp, Sym(1))
+    push!(exp, Sym(1))
     coeff = exp_coeffs(sol, [z^r.n for z in exp])
     return CFiniteClosedForm(r.f, r.n, exp, coeff)
 end
