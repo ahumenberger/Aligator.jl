@@ -1,3 +1,4 @@
+
 function rational_form{S}(T::Matrix{S}, σ, σ_inv, δ)
     n = size(T)[1]
     i0 = 1
@@ -235,34 +236,30 @@ function transform_lemma5{S}(T::Matrix{S}, i0::Int, i::Int, k::Int, σ, σ_inv, 
     return T, B
 end
 
-@syms n
+# @syms n
 
-σ_rec(x) = x |> subs(n, n+1)
-σ_rec_inv(x) = x |> subs(n, n-1)
 
-δ(x) = σ_rec(x) - x
 
-A0 = Rational{Int}[1 -1 0; 0 1 2; 0 0 1]
-A = copy(A0)
+# A0 = Rational{Int}[1 -1 0; 0 1 2; 0 0 1]
+# A = copy(A0)
 
-@syms n
+# @syms n
 
-AA = Sym[1 0 1; n 1 0; 0 0 1]
+# AA = Sym[1 0 1; n 1 0; 0 0 1]
 
-# T = A - eye(size(A)[1])
+# # T = A - eye(size(A)[1])
 
-# eigvecs(A)
+# # eigvecs(A)
 
-# println(A)
-# println(T)
+# # println(A)
+# # println(T)
 
-T, B = rational_form(AA, σ_rec, σ_rec_inv, δ)
-display(T)
-display(B)
-T, B = rational_form(A0, σ_rec, σ_rec_inv, δ)
+# T, B = rational_form(AA, σ_rec, σ_rec_inv, δ)
+# display(T)
+# display(B)
+# T, B = rational_form(A0, σ_rec, σ_rec_inv, δ)
 
-# println(A0)
-display(T)
-display(B)
-
+# # println(A0)
+# display(T)
+# display(B)
 
