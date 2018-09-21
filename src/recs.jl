@@ -13,10 +13,12 @@ end
 
 LinearRecSystem(n::T, vars::Vector{T}, mat::Vector{Matrix{T}}, inhom::Vector{T}) where T = LinearRecSystem{T,length(mat)}(n, vars, mat, inhom) 
 LinearRecSystem(n::T, vars::Vector{T}, mat::Vector{Matrix{T}}) where T = LinearRecSystem(n, vars, mat, zeros(T, length(vars))) 
+LinearRecSystem(n::T, vars::Vector{T}, mat::Matrix{T}, inhom::Vector{T}) where T = LinearRecSystem(n, vars, [mat], inhom) 
 LinearRecSystem(n::T, vars::Vector{T}, mat::Matrix{T}) where T = LinearRecSystem(n, vars, [mat]) 
 
 order(::LinearRecSystem{T,N}) where {T,N} = N
 
+"Transform the LRS `s` of arbitrary order into a system of order 1."
 function firstorder(s::LinearRecSystem{T,O}) where {T,O}
     if O == 1
         return s
@@ -27,12 +29,8 @@ function firstorder(s::LinearRecSystem{T,O}) where {T,O}
     vars = [unique(T, (O-1)*n); s.vars]
     Z = zeros(T, (O-1)*n, n)
     I = eye(T, (O-1)*n)
-    display(Z)
-    display(I)
     M = hcat(Z,I)
     N = hcat(s.mat...)
-    display(M)
-    display(N)
     mat = vcat(M, N)
     LinearRecSystem(s.n, vars, mat)
 end
@@ -68,30 +66,72 @@ end
 
 # # δ(x) = σ_rec(x) - x
 
+"Uncouple the LRS by using Zürchers algorithm."
 function uncouple(s::LinearRecSystem{T,1}) where T
     s = homogenize(s)
     σ = x -> x |> subs(s.n, s.n+1)
     σinv = x -> x |> subs(s.n, s.n+1)
     δ = x -> σ(x) - x
-    C, _ = rational_form(s.mat[1], σ, σinv, δ)
+    C, A = rational_form(copy(s.mat[1]), σ, σinv, δ)
+    println("A")
+    display(A)
+    display(inv(A))
+    display(s.mat[1])
+    println("something")
+    display(inv(A)*s.mat[1]*A)
     LinearRecSystem(s.n, s.vars, C)
 end
 
-# function solve(s::LinearRecSystem{T}) where T
-#     # ensure that s.mat is a companion matrix
+"Get the recurrence corresponding to the index `i."
+function get(l::LinearRecSystem{T}, i::Int) where T
+
+end
+
+"Get the recurrence corresponding to variable `var`."
+get(l::LinearRecSystem{T}, var::T) where T = get(l, findfirst(x -> x == var, l.vars))
+
+"Get closed forms of recurrences corresponding to variables in `vars`."
+function solve(s::LinearRecSystem{T}, vars::Vector{T}) where T
     
-# end
+end
+
+"Compute all closed forms."
+solve(s::LinearRecSystem{T}) = solve(s, s.vars)
 
 @syms r v n
 
-# lrs = LinearRecSystem(n, [r, v], Rational[1 -1; 0 1], Sym[0, 2])
-lrs = LinearRecSystem(n, [r], [hcat(Sym(1)), hcat(Sym(1)),hcat(Sym(1))], Sym[0])
+# lrs = LinearRecSystem(n, [r, v], Sym[1 -1; 0 1], Sym[0, 2])
+# lrs = LinearRecSystem(n, [r], [hcat(Sym(1)), hcat(Sym(1)),hcat(Sym(1))], Sym[0])
+lrs = LinearRecSystem(n, [r, v], Sym[1 1; 1 2])
 display(order(lrs))
 # lrs = LinearRecSystem(n, [r], hcat(Sym(1)))
 # display(order(lrs))
 # typeof(lrs)
 lrs = firstorder(lrs)
 lrs = homogenize(lrs)
-uncouple(lrs)
+lrs = uncouple(lrs)
 # uncouple(lrs)
 # display(lrs)
+
+
+# x = 1;y = 1;for i in 1:10
+#     x = x + y
+#     y = y + x
+#     # println("x = $x")
+#     println("y = $y")
+# end
+
+# function evalrec(coeffs, ivals, n)
+#     order = length(ivals)
+#     vals = ivals
+#     coeffs = reverse(coeffs)
+#     for i in order:n
+#         val = sum(coeffs .* vals[end-order+1:end])
+#         append!(vals, val)
+#     end
+
+#     display(vals)
+# end
+
+# x' = x + y
+# y' = y + x' = y + x + y
