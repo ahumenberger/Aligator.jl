@@ -75,12 +75,16 @@ function uncouple(s::LinearRecSystem{T,1}) where T
     C, A = rational_form(copy(s.mat[1]), σ, σinv, δ)
     println("A")
     display(A)
-    display(inv(A))
-    display(s.mat[1])
+    # display(inv(A))
+    # display(s.mat[1])
     println("something")
     display(inv(A)*s.mat[1]*A)
     LinearRecSystem(s.n, s.vars, C)
 end
+
+iseye(m::Matrix) = iszero(m - eye(m))
+
+isuncoupled(lrs::LinearRecSystem) = all([iseye(m) for m in lrs.mat])
 
 "Get the recurrence corresponding to the index `i."
 function get(l::LinearRecSystem{T}, i::Int) where T
@@ -90,29 +94,97 @@ end
 "Get the recurrence corresponding to variable `var`."
 get(l::LinearRecSystem{T}, var::T) where T = get(l, findfirst(x -> x == var, l.vars))
 
-"Get closed forms of recurrences corresponding to variables in `vars`."
-function solve(s::LinearRecSystem{T}, vars::Vector{T}) where T
+# "Get closed forms of recurrences corresponding to variables in `vars`."
+# function solve(s::LinearRecSystem{T}, vars::Vector{T}) where T
     
-end
+# end
 
-"Compute all closed forms."
-solve(s::LinearRecSystem{T}) = solve(s, s.vars)
+# "Compute all closed forms."
+# solve(s::LinearRecSystem{T}) = solve(s, s.vars)
 
 @syms r v n
 
 # lrs = LinearRecSystem(n, [r, v], Sym[1 -1; 0 1], Sym[0, 2])
 # lrs = LinearRecSystem(n, [r], [hcat(Sym(1)), hcat(Sym(1)),hcat(Sym(1))], Sym[0])
-lrs = LinearRecSystem(n, [r, v], Sym[1 1; 1 2])
-display(order(lrs))
+# lrs = LinearRecSystem(n, [r, v], Sym[1 1; 1 2])
+# display(order(lrs))
+
+@syms x i j y
+
+A = Sym[2 1 0 1; 0 1 0 0; 2 1 1 1; 0 0 0 1]
+v = Sym[0, 1, 0, 0]
+vars = [x, i, j, y]
+lrs = LinearRecSystem(n, vars, A, v)
+display(lrs)
+
 # lrs = LinearRecSystem(n, [r], hcat(Sym(1)))
 # display(order(lrs))
 # typeof(lrs)
 lrs = firstorder(lrs)
+display(lrs)
+
 lrs = homogenize(lrs)
+display(lrs.mat[1])
+
 lrs = uncouple(lrs)
+display(lrs.mat[1])
+
 # uncouple(lrs)
 # display(lrs)
 
+"Compute thetas; coeffs are given in decreasing order"
+function closedform(coeffs::Vector{T}, n::T) where T
+    # println("Original: ", orig)
+    # r = homogeneous(orig)
+    # # println("Homogeneous: ", r)
+    
+    # shift = order(r) - order(orig)
+    # rh = rhs(orig)
+    # ord = order(orig)
+    # init = Dict{Sym,Sym}([(orig.f(i), rh |> SymPy.replace(orig.n, i-ord)) for i in ord:shift+ord-1])
+    # # init = rewrite(init)
+
+    # rel = relation(r)
+    # # println("Homogeneous: ", homogeneous(r))
+    # w0  = Wild("w0")
+
+    order = length(coeffs)
+    lbd = unique(T)
+    cpoly = sum([c*lbd^i-1 for (i, c) in enumerate(reverse(coeffs))])
+    # println("CPoly: ", cpoly |> simplify)
+    # factors = factor_list(cpoly)
+    roots   = polyroots(cpoly)
+    unknowns = T[]
+    store_unique() = (v = unique(T); push!(unknowns, v); v)
+    ansatz = sum([sum([store_unique() * n^i * z^n for i in 0:m - 1]) for (z, m) in roots])
+
+    display(unknowns)
+    system = [Eq(unique(T), ansatz |> subs(n, i)) for i in 0:order - 1]
+    sol = solve(system, unknowns)
+    display(system)
+    sol = ansatz |> subs(sol)
+    display(sol)
+    # if !isempty(init)
+    #     tmp = nothing
+    #     while true
+    #         tmp = (sol |> subs(init)) |> simplify
+    #         if tmp == sol
+    #             break
+    #         end
+    #         sol = tmp
+            
+    #     end
+    #     sol = simplify(tmp)
+    # end
+    
+    # exp = [z for (z, _) in roots]
+    # exp = filter(x -> x!=Sym(1), exp)
+    # push!(exp, Sym(1))
+    # coeff = exp_coeffs(sol, [z^r.n for z in exp])
+    # return CFiniteClosedForm(r.f, r.n, exp, coeff)
+end
+
+# closedform(Sym[1,2], n)
 
 # x = 1;y = 1;for i in 1:10
 #     x = x + y
