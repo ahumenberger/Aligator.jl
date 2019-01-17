@@ -3,7 +3,7 @@ abstract type Loop end
 
 const LoopBody = Array{<:Recurrence,1}
 
-type EmptyLoop <: Loop end
+struct EmptyLoop <: Loop end
 
 struct SingleLoop <: Loop
     body::LoopBody

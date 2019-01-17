@@ -265,7 +265,7 @@ function flattenall(a::AbstractArray)
 end
 
 function extract_loop(str::String)
-    loops = extract_assign(parse(str), 0)
+    loops = extract_assign(Meta.parse(str), 0)
     loops = transform(loops, CompoundStmt(), CompoundStmt())
     loops = flattenall(loops)
     loops = filter(x -> !isempty(x), loops)

@@ -10,13 +10,13 @@ function uniquevar(v="v")
     return Sym(Symbol("$v$unique_var_count"))
 end
 
-function replace!{T}(a::Array{T}, d::Dict{T,T})
+function replace!(a::Array{T}, d::Dict{T,T}) where T
     for (k, v) in d
         a[a .== k] = v
     end
 end
 
-function replace{T}(a::Array{T}, d::Dict{T,T})
+function replace(a::Array{T}, d::Dict{T,T}) where T
     b = copy(a)
     replace!(b, d)
     return b
