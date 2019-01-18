@@ -18,7 +18,7 @@ include("invariants.jl")
 include("parse_julia.jl")
 include("dependencies.jl")
 include("ideals.jl")
-# include("singular_imap.jl")
+include("singular_imap.jl")
 
 
 function aligator(str::String)

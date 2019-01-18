@@ -1,3 +1,4 @@
+import Singular: fetch, imap
 
 function invariants(cforms::ClosedFormSystem)
     I, loopvars, expvars, lc = preprocess([cforms], singleloop = true)[1]
@@ -46,7 +47,7 @@ function invariants(loops::Array{ClosedFormSystem,1})
         # println("Basis (after map): ", b)
         B = Singular.Ideal(S, b)
 
-        elim = imap.(elim, S)
+        elim = imap.(elim, Ref(S))
 
         I_n = Singular.eliminate(imap(I_new, S) + B, elim...)
         I_n = groebner(imap(I_n, R))

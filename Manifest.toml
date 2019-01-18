@@ -138,9 +138,9 @@ uuid = "1a1011a3-84de-559e-8e89-a11a2f7dc383"
 
 [[Singular]]
 deps = ["AbstractAlgebra", "CxxWrap", "Libdl", "LinearAlgebra", "Markdown", "Nemo", "Statistics", "Test"]
-git-tree-sha1 = "2ea0e53bced4015ac57a35744f940597623ccdaa"
+git-tree-sha1 = "2dbd6a03491f1436b8d8962d7ac85a1dd65b1e6b"
 repo-rev = "master"
-repo-url = "https://github.com/oscar-system/Singular.jl"
+repo-url = "https://github.com/ahumenberger/Singular.jl"
 uuid = "07ff78f2-aaa2-527c-9c0a-731feae108f8"
 version = "0.0.0"
 

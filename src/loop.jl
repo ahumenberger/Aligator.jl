@@ -39,7 +39,7 @@ function Base.show(io::IO, loop::MultiLoop)
     println(io, "$(length(loop.branches))-element $(typeof(loop)):")
     for l in loop.branches
         print(io, " ")
-        showcompact(io, l)
+        summary(io, l)
         # print(io, "\n")
     end
 end
