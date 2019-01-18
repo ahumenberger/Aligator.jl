@@ -1,7 +1,7 @@
 
 abstract type Loop end
 
-const LoopBody = Array{<:Recurrence,1}
+const LoopBody = Vector{<:Recurrence}
 
 struct EmptyLoop <: Loop end
 

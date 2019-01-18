@@ -228,13 +228,13 @@ function eq2rec(eq::Sym, fn::SymFunction, lc::Sym)
     w0 = Wild("w0")
     args = [get(match(fn(lc + w0), f), w0, nothing) for f in fns]
     args = filter(x -> x!=nothing, args)
-    minidx = Int(minimum(args))
+    minidx = convert(Int, minimum(args))
     if minidx < 0
         eq = eq |> subs(lc, lc - minidx)
     else
         minidx = 0
     end
-    ord = Int(maximum(args)) - minidx
+    ord = convert(Int, maximum(args)) - minidx
     coeffs = Sym[]
     for i in 0:ord
         c, eq = coeff_rem(eq, fn(lc + i))
@@ -284,7 +284,7 @@ function extract_loop(str::String)
     for (i, loop) in enumerate(loops)
         lc = Sym("n_$(i)")
         recs = recurrence.(symbolic(loop, lc, recvars))
-        loop = SingleLoop(LoopBody(recs), lc, Sym.(string.(variables(loop))))
+        loop = SingleLoop(recs, lc, Sym.(string.(variables(loop))))
         push!(ls, loop)
     end
 

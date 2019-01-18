@@ -187,7 +187,7 @@ end
 function replace_functions(expr::Sym, index::Int)
     w0   = Wild("w0")
     fns  = Sym.(collect(atoms(expr, AppliedUndef)))
-    vars = [Sym("$(string(Sym(func(fn).x)))_$(Int(args(fn)[1])+index)") for fn in fns]
+    vars = [Sym("$(string(Sym(func(fn).x)))_$(convert(Int, args(fn)[1])+index)") for fn in fns]
     dict = Dict(zip(fns, vars))
     return subs(expr, dict)
 end

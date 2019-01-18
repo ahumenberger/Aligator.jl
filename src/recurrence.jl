@@ -59,7 +59,7 @@ function homogeneous(r::Recurrence)
     if is_homogeneous(r)
         return r
     elseif is_polynomial(r.inhom, r.n)
-        d = degree(Poly(r.inhom, n)) |> Int64
+        d = convert(Int64, degree(Poly(r.inhom, n)))
         res = relation(r)
         for i in 1:d + 1
             res = (res |> subs(n, n + 1)) - res
