@@ -129,6 +129,8 @@ end
 
 #-------------------------------------------------------------------------------
 
+extract_assign(expr::LineNumberNode, level) = nothing
+
 function extract_assign(expr::Expr, level)
     h = string(expr.head)
     if h == "while"
