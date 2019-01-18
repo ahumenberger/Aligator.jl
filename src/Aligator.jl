@@ -8,6 +8,7 @@ using SymPy
 using Singular
 using ContinuedFractions
 
+const AppliedUndef = PyCall.PyNULL()
 
 include("utils.jl")
 include("closedform.jl")
@@ -35,6 +36,10 @@ function aligator(str::String)
     println("\nTotal time needed: $(total)s")
     
     return invs
+end
+
+function __init__()
+    copy!(AppliedUndef, PyCall.pyimport_conda("sympy.core.function", "sympy")[:AppliedUndef])
 end
 
 end # module

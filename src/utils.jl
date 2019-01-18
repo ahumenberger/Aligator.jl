@@ -22,8 +22,6 @@ function replace(a::Array{T}, d::Dict{T,T}) where T
     return b
 end
 
-AppliedUndef = PyCall.pyimport_conda("sympy.core.function", "sympy")["AppliedUndef"]
-
 function symfunctions(expr::Sym)
     return Sym.(collect(atoms(expr, AppliedUndef)))
 end
