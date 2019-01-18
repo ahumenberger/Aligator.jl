@@ -142,7 +142,7 @@ git-tree-sha1 = "2dbd6a03491f1436b8d8962d7ac85a1dd65b1e6b"
 repo-rev = "master"
 repo-url = "https://github.com/ahumenberger/Singular.jl"
 uuid = "07ff78f2-aaa2-527c-9c0a-731feae108f8"
-version = "0.0.0"
+version = "0.1.0"
 
 [[Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
