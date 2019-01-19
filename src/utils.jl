@@ -53,7 +53,7 @@ function clear_denom(expr::Sym)
 end
 
 function lcm2(n::Sym, rest::Sym...)
-    lcm(n, lcm2(rest...))
+    SymPy.lcm(n, lcm2(rest...))
 end
 
 function lcm2()

@@ -1,7 +1,5 @@
-# using SymPy
-
 import Base.push!
-import Base: push!, isempty, start, next, done, in
+import Base: push!, isempty
 
 # struct AssignPair
 #     lhs::Symbol
@@ -33,10 +31,10 @@ merge(cs1::CompoundStmt, cs2::CompoundStmt) = CompoundStmt([cs1.pairs; cs2.pairs
 CompoundStmt() = CompoundStmt(Array{AssignPair,1}())
 CompoundStmt(cs::CompoundStmt...) = CompoundStmt(vcat(assignments.(cs)))
 
-start(x::CompoundStmt) = false
-next(x::CompoundStmt, state) = (x, true)
-done(x::CompoundStmt, state) = state
-in(x::CompoundStmt, y::CompoundStmt) = x == y
+# start(x::CompoundStmt) = false
+# next(x::CompoundStmt, state) = (x, true)
+# done(x::CompoundStmt, state) = state
+# in(x::CompoundStmt, y::CompoundStmt) = x == y
 
 function Base.show(io::IO, cs::CompoundStmt)
     print(io, "Compound(")
