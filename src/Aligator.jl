@@ -14,15 +14,16 @@ using SymEngine
 const AppliedUndef = PyCall.PyNULL()
 
 include("utils.jl")
-include("closedform.jl")
-include("recurrence.jl")
-include("loop.jl")
-include("invariants.jl")
+# include("closedform.jl")
+# include("recurrence.jl")
+# include("loop.jl")
+# include("invariants.jl")
 # include("parse_julia.jl")
 include("dependencies.jl")
 include("ideals.jl")
 include("singular_imap.jl")
 include("looptransform.jl")
+include("invs.jl")
 
 
 function aligator(str::String)
@@ -33,7 +34,7 @@ function aligator(str::String)
         @info "Recurrence extraction" time
         @info loops vars
 
-        cforms = map(x -> Recurrences.solve(lrs_sequential(Vector{Expr}(x.args))), loops)
+        cforms = map(x -> Recurrences.solve(lrs_sequential(Vector{Expr}(x.args), :n)), loops)
         # cforms, time = @timed closed_forms(loop)
         # @info "Recurrence solving" time
         @info "" cforms
@@ -44,7 +45,7 @@ function aligator(str::String)
     end
     @info "Total time needed" total
     
-    # return invs
+    return invs
 end
 
 function polys(cs::Vector{T}, vars::Vector{Symbol}) where {T<:Recurrences.ClosedForm}
@@ -57,13 +58,15 @@ function polys(cs::Vector{T}, vars::Vector{Symbol}) where {T<:Recurrences.Closed
         push!(vs, Symbol(string(c.func)))
     end
     for v in setdiff(vars, vs)
-        push!(ls, :($v - $(Recurrences.initvariable(v, 0))))
+        push!(ls, :($v - $(initvar(v))))
     end
     ls
 end
 
 function invariants(cs::Vector{Vector{T}}, vars::Vector{Symbol}) where {T<:Recurrences.ClosedForm}
     ps = [polys(c, vars) for c in cs]
+    # BranchIterator(ps, map(Basic, vars), Basic[:n])
+    invariants(ps, map(Basic, vars), Basic[:n])
 end
 
 function __init__()
