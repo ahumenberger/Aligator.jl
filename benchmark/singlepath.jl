@@ -1,5 +1,6 @@
 
 simpleloop = """
+    while true
         x = 1/2*x
         y = 2y
     end
