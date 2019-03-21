@@ -10,6 +10,7 @@ using ContinuedFractions
 using MacroTools
 using Recurrences
 using SymEngine
+using Nemo
 
 const AppliedUndef = PyCall.PyNULL()
 
@@ -51,8 +52,15 @@ end
 function polys(cs::Vector{T}, vars::Vector{Symbol}) where {T<:Recurrences.ClosedForm}
     ls = Basic[]
     vs = Symbol[]
+    exps = Base.unique(Iterators.flatten(map(exponentials, cs)))
+    exps = filter(x->x!=1, exps)
+    ls, evars = dependencies(exps)
+    expmap = Dict(zip(exps, evars))
+    @info "" exps
     for c in cs
-        p = c.func - expression(c)
+        exp = exponentials(c)
+        exp = [get(expmap, x, x) for x in exp]
+        p = c.func - expression(c; expvars = exp)
         p = SymEngine.expand(p * denominator(p))
         push!(ls, p)
         push!(vs, Symbol(string(c.func)))
@@ -60,13 +68,20 @@ function polys(cs::Vector{T}, vars::Vector{Symbol}) where {T<:Recurrences.Closed
     for v in setdiff(vars, vs)
         push!(ls, :($v - $(initvar(v))))
     end
-    ls
+    ls, [evars; cs[1].arg]
 end
 
 function invariants(cs::Vector{Vector{T}}, vars::Vector{Symbol}) where {T<:Recurrences.ClosedForm}
-    ps = [polys(c, vars) for c in cs]
+    ps = Vector{Basic}[]
+    as = Basic[]
+    for c in cs
+        p, auxvars = polys(c, vars)
+        @info "" p
+        push!(ps, p)
+        push!(as, auxvars...)
+    end
     # BranchIterator(ps, map(Basic, vars), Basic[:n])
-    invariants(ps, map(Basic, vars), Basic[:n])
+    invariants(ps, map(Basic, vars), as)
 end
 
 function __init__()
