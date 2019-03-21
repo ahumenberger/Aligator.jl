@@ -54,7 +54,7 @@ const MUL = func(x*y)
 const POW = func(x^y)
 
 function sym2spoly(b::Array{Sym, 1})
-    fvars = union(free_symbols.(b)...)
+    fvars = union(SymPy.free_symbols.(b)...)
     svars = string.(fvars)
     R, pvars = PolynomialRing(QQ, svars)
     dict = Dict(zip(string.(fvars), pvars))

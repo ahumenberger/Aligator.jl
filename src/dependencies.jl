@@ -28,7 +28,8 @@ function common_number_field(extensions::Array{Sym, 1})
         theta = dot(nonrat, coeffs)
     end
     # return [AlgebraicNumber(sqrt(Sym(5)),[1/Sym(2),1/Sym(2)]), AlgebraicNumber(sqrt(Sym(5)),[1/Sym(2),-1/Sym(2)])]
-    return [AlgebraicNumber(theta, field_isomorphism(ext, theta)) for ext in extensions]
+    # @info [field_isomorphism(ext, theta) for ext in extensions][1][1][1] theta extensions
+    return [AlgebraicNumber(theta, sympy.polys.numberfields.field_isomorphism(ext, theta)) for ext in extensions]
 end
 
 function z_nullspace(matrix::Matrix{Int})
@@ -40,7 +41,7 @@ function z_nullspace(matrix::Matrix{Int})
     zvec = zeros(size(h, 2))
 
     # TODO: find better way to filter zero vectors
-    res = Matrix{Int}(0, ncols(t))
+    res = Matrix{Int}(undef, 0, ncols(t))
     for i in 1:nrows(t)
         if iszero(h[i,:])
             res = vcat(res, transpose(t[i,:]))
@@ -63,7 +64,7 @@ function z_module_intersect(base1::Matrix{Int}, base2::Matrix{Int})
 
     m1 = transpose(base1)
     m2 = transpose(sol[:, 1:nrows(base1)])
-    return lll(transpose(m1 * m2))
+    return lll(collect(transpose(m1 * m2)))
 end
 
 function minimal_polynomial(a::AlgebraicNumber, x::Sym)
@@ -107,9 +108,11 @@ function findzeros(a::Array{Sym,1})
     return zeros
 end
 
+using LinearAlgebra
+
 function findrelations(roots::Array{Sym,1})
     # first treat zeros in the root list
-    zeros = find(x -> x == 0, roots)
+    zeros = findall(x -> x == 0, roots)
     if length(zeros) == length(roots)
         return []
     end
@@ -129,7 +132,7 @@ function findrelations(roots::Array{Sym,1})
     imlog = [SymPy.imag(SymPy.log(Sym(x))) for x in a]
     imlog = [imlog; Sym(2)*SymPy.pi]
 
-    # println(relog)
+    @info "" relog
     # println(imlog)
 
     # replace implicit zeros by explicit ones
@@ -137,28 +140,28 @@ function findrelations(roots::Array{Sym,1})
         z = a[i]
 
         # abs(z) == 1
-        if abs(N(abs(z)) - 1) < 0.1 && simplify(abs(z)) == 1
-            relog[i] = 0
+        if abs(SymPy.N(abs(z)) - 1) < 0.1 && simplify(abs(z)) == 1
+            relog[i] = zero(Sym)
         end
 
         # z is real and z >= 0
         if is_real(z) && is_real(sqrt(z))
-            imlog[i] = 0
+            imlog[i] = zero(Sym)
         else
             # TODO: try harder: If[ Element[RootReduce[z], Reals] && Element[Sqrt[RootReduce[z]], Reals], imLog[[i]] = 0 ];
         end
     end
 
     # comute a bound for the coefficients of the generators
-    bound = Int(masser_bound(an))
+    bound = convert(Int, masser_bound(an))
     # println("Masser bound: ", bound)
 
-    m = eye(Int, length(a)) # identity matrix
+    m = Matrix{Int}(I, length(a), length(a)) # identity matrix
 
     # successively refine the approximation until only valid generators are returned
-    level = Int(ceil(N(log2(bound)) + 1))
+    level = Int(ceil(SymPy.N(log2(bound)) + 1))
     while prod(Bool[check_relation(a, m[i,:]) for i in 1:size(m)[1]]) == 0
-        m1 = getbasis(relog, level, bound)
+        m1 = getbasis(Sym.(relog), level, bound)
         m2 = getbasis(imlog, level, bound)
         m = z_module_intersect(m1, m2[:,1:end-1])
         level = level + 1
@@ -173,10 +176,10 @@ end
 
 function convergent(x, n)
     # TODO: is precision of 60 enough>
-    cf = ContinuedFraction(N(x, 60))
+    cf = ContinuedFraction(SymPy.N(x, 60))
     co = convergents(cf)
-    res = next(co, n)[1]
-    return next(co, n)[1]
+    res = iterate(co, n)[1]
+    return iterate(co, n)[1]
 end
 
 nrows(a::Matrix{<:Any}) = size(a)[1]
@@ -201,7 +204,8 @@ function getbasis(l::Array{Sym, 1}, level::Int, bound::Int)
             b = hcat(b[:,1:pos-1], zvec, b[:,pos:end])
         end
         # add unit vectors at the zero positions
-        b = vcat(b, eye(n)[zpos,:])
+        eye = Matrix{Int}(I, n, n) # identity matrix
+        b = vcat(b, eye[zpos,:])
         return Matrix{Int}(b)
     end
 
@@ -241,9 +245,9 @@ function getbasis(l::Array{Sym, 1}, level::Int, bound::Int)
     maxe = maximum([abs(c) for c in e])
     # println("min: ", minc1)
     # println("max: ", maxe)
-    d = BigInt(ceil(N(2^((length(c1) - 1)/2)*bound/(minc1 - maxe))))
+    d = BigInt(ceil(SymPy.N(2^((length(c1) - 1)/2)*bound/(minc1 - maxe))))
     # println("Integer d: ", d)
-    identity = eye(Int, n)
+    identity = Matrix{Int}(I, n, n) # identity matrix
     row = c1 * d
     b = hcat(identity, row)
     b = lll(b)
@@ -251,7 +255,7 @@ function getbasis(l::Array{Sym, 1}, level::Int, bound::Int)
     #   discarded; they cannot correspond to integer relations.
     # b = vcat([b[i,:] for i in 1:nrows(b) ])
     # TODO: find better way to filter rows
-    res = Matrix{Rational{Int}}(0,n+1)
+    res = Matrix{Rational{Int}}(undef, 0, n+1)
     for i in 1:nrows(b)
         if (abs(b[i,:][end]) <= d*abs(dot(b[i,1:n],e)))
             res = vcat(res, transpose(b[i,:]))
@@ -265,7 +269,7 @@ function getbasis(l::Array{Sym, 1}, level::Int, bound::Int)
 end
 
 function clear_denom(a::Matrix{Rational{BigInt}})
-    d = lcm(denominator.(a))
+    d = SymPy.lcm(denominator.(a))
     return a*d, d
 end
 
@@ -310,8 +314,10 @@ function ideal(m::Matrix{BigInt}, x::Array{Sym,1})
     return eliminate(base, y)
 end
 
-function dependencies(roots::Array{Sym,1}; variables=Sym[])
+function dependencies(roots::Vector{Basic}; variables=Sym[])
     # println("Computing dependencies between ", roots)
+    roots = [Sym(string(r)) for r in roots]
+    @info "roots" roots
     if length(roots) < 2
         return nothing
     end
@@ -321,5 +327,7 @@ function dependencies(roots::Array{Sym,1}; variables=Sym[])
     elseif length(variables) != ncols(lattice)
         throw("Number of variables does not match number of columms. Got $(length(variables)), need $(ncols(lattice))")
     end
-    return ideal(lattice, variables)
+    vs = [Basic(string(v)) for v in variables]
+    res = ideal(lattice, variables)
+    return map(Basic ∘ string, res), vs
 end
