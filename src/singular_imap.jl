@@ -166,7 +166,7 @@
 #     dst(ptr)
 # end
 
-function imap(I::sideal, R::PolyRing)
+function imap(I::sideal, R::Singular.PolyRing)
     # @info imap [g for g in I]
     basis = [Singular.imap(g, R) for g in I]
     if isempty(basis)
@@ -175,7 +175,7 @@ function imap(I::sideal, R::PolyRing)
     Singular.Ideal(R, basis)
 end
  
-function fetch(I::sideal, R::PolyRing)
+function fetch(I::sideal, R::Singular.PolyRing)
     basis = [Singular.fetch(g, R) for g in I]
     if isempty(basis)
         return Singular.Ideal(R)

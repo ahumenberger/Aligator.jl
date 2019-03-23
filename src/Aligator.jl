@@ -10,7 +10,7 @@ using ContinuedFractions
 using MacroTools
 using Recurrences
 using SymEngine
-using Nemo
+using AlgebraicDependencies
 
 const AppliedUndef = PyCall.PyNULL()
 
@@ -20,7 +20,7 @@ include("utils.jl")
 # include("loop.jl")
 # include("invariants.jl")
 # include("parse_julia.jl")
-include("dependencies.jl")
+# include("dependencies.jl")
 include("ideals.jl")
 include("singular_imap.jl")
 include("looptransform.jl")
@@ -54,7 +54,8 @@ function polys(cs::Vector{T}, vars::Vector{Symbol}) where {T<:Recurrences.Closed
     vs = Symbol[]
     exps = Base.unique(Iterators.flatten(map(exponentials, cs)))
     exps = filter(x->x!=1, exps)
-    ls, evars = dependencies(exps)
+    evars = [Basic(Recurrences.gensym_unhashed(:v)) for _ in 1:length(exps)]
+    ls= dependencies(exps; variables=evars)
     expmap = Dict(zip(exps, evars))
     @info "" exps
     for c in cs
