@@ -1,4 +1,3 @@
-
 struct BranchIterator
     bs::Vector{sideal}
     vars::Vector{String}
@@ -10,7 +9,7 @@ function BranchIterator(bs::Vector{Vector{Basic}}, vars::Vector{Basic}, auxvars:
     vs = [vars; map(initvar, vars); auxvars]
     R, _ = PolynomialRing(QQ, map(string, vs))
     ideals = [Singular.Ideal(R, map(R, b)) for b in bs]
-    @info "" ideals
+    @debug "Ideals in branch iterator" ideals
     len = length(ideals) == 1 ? 1 : length(ideals) * (length(vars) + 1)
     BranchIterator(ideals, map(string, vars), map(string, auxvars), len)
 end
@@ -95,7 +94,7 @@ function fixedpoint(biter::BranchIterator, vars::Vector{String})
     I = Singular.Ideal(R)
     T = initial_ideal(vars)
     for (i, (J, elim)) in enumerate(biter)
-        @info "Fixed point iterations $i" T J
+        @debug "Fixed point iterations $i" T J
         S = base_ring(J)
         T = imap(T, S) # map old ideal to new ring via variable name
         T = Singular.eliminate(T + J, elim...)
@@ -104,7 +103,7 @@ function fixedpoint(biter::BranchIterator, vars::Vector{String})
             fs = [initvar(v, i+1) for v in vars]
             RR, _ = PolynomialRing(QQ, [fs; is])
             II = std(fetch(imap(T, RR), R)) # map current ideal to final ring
-            @info "Check if ideals are equal" T II I R isequal(I,II)
+            @debug "Check if ideals are equal" T II I R isequal(I,II)
             if isequal(I, II)
                 return I
             end
@@ -112,4 +111,40 @@ function fixedpoint(biter::BranchIterator, vars::Vector{String})
         end
     end
     error("Fixed-point computation failed. Should not happen.")
+end
+
+# ------------------------------------------------------------------------------
+
+function invariants(cs::Vector{Vector{T}}, vars::Vector{Symbol}) where {T<:Recurrences.ClosedForm}
+    ps = Vector{Basic}[]
+    as = Basic[]
+    for c in cs
+        p, auxvars = polys(c, vars)
+        push!(ps, p)
+        push!(as, auxvars...)
+    end
+    invariants(ps, map(Basic, vars), as)
+end
+
+function polys(cs::Vector{T}, vars::Vector{Symbol}) where {T<:Recurrences.ClosedForm}
+    ls = Basic[]
+    vs = Symbol[]
+    exps = Base.unique(Iterators.flatten(map(exponentials, cs)))
+    exps = filter(x->x!=1, exps)
+    evars = [Basic(Recurrences.gensym_unhashed(:v)) for _ in 1:length(exps)]
+    ls = dependencies(exps; variables=evars)
+    expmap = Dict(zip(exps, evars))
+    @debug "Exponentials" exps expmap
+    for c in cs
+        exp = exponentials(c)
+        exp = [get(expmap, x, x) for x in exp]
+        p = c.func - expression(c; expvars = exp)
+        p = SymEngine.expand(p * denominator(p))
+        push!(ls, p)
+        push!(vs, Symbol(string(c.func)))
+    end
+    for v in setdiff(vars, vs)
+        push!(ls, :($v - $(initvar(v))))
+    end
+    ls, [evars; cs[1].arg]
 end
