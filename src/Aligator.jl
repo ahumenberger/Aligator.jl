@@ -12,9 +12,11 @@ include("looptransform.jl")
 include("invariants.jl")
 include("singular.jl")
 
-function aligator(str::String)
+aligator(s::String) = aligator(Meta.parse(s))
+
+function aligator(x::Expr)
     _, total = @timed begin
-        branches, etime = @timed extract_loops(Meta.parse(str))
+        branches, etime = @timed extract_loops(x)
         vars = Base.unique(Iterators.flatten(map(Recurrences.free_symbols, branches)))
         @debug "Extracting branches" branches vars
 
@@ -26,13 +28,13 @@ function aligator(str::String)
             end
         end
         @debug "Closed forms" cforms
-        
+
         invs, itime = @timed invariants(cforms, vars)
         @debug "Invariant ideal" invs
     end
     @info "Time needed" total etime stime itime
-    
-    return invs
+
+    return map(Meta.parse ∘ string, invs)
 end
 
 function __init__()
