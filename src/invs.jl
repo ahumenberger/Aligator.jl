@@ -42,7 +42,6 @@ function stateideal(iter::BranchIterator, I::sideal, state::Int)
     fetch(I, R), [mss; ass]
 end
 
-# Returns either a tuple of the first item and initial state or nothing if empty
 function Base.iterate(iter::BranchIterator)
     if length(iter) == 0
         return nothing
@@ -104,7 +103,7 @@ function fixedpoint(biter::BranchIterator, vars::Vector{String})
         if i % bcount == 0
             fs = [initvar(v, i+1) for v in vars]
             RR, _ = PolynomialRing(QQ, [fs; is])
-            II = groebner(fetch(imap(T, RR), R)) # map current ideal to final ring
+            II = std(fetch(imap(T, RR), R)) # map current ideal to final ring
             @info "Check if ideals are equal" T II I R isequal(I,II)
             if isequal(I, II)
                 return I
