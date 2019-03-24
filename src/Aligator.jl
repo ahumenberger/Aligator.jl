@@ -3,12 +3,11 @@ module Aligator
 
 export aligator
 
-using Singular
-using ContinuedFractions
 using MacroTools
-using Recurrences
 using SymEngine
+using Recurrences
 using AlgebraicDependencies
+using Singular
 
 include("singular_imap.jl")
 include("looptransform.jl")
