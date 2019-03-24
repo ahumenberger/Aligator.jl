@@ -16,17 +16,6 @@ end
 
 nbranches(iter::BranchIterator) = length(iter.bs)
 
-function (R::PolyRing)(x::Expr)
-    vs = [:($(Symbol(string(g))) = $g) for g in gens(R)]
-    qq = quote
-        let $(vs...)
-            $x
-        end
-    end
-    eval(qq)
-end
-(R::PolyRing)(x::Basic) = R(convert(Expr, x))
-
 splitgens(R, lss...) = let sf = Iterators.Stateful(gens(R))
     (collect(Iterators.take(sf, length(ls))) for ls in lss)
 end

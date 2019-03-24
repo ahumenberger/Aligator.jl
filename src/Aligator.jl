@@ -1,4 +1,3 @@
-
 module Aligator
 
 export aligator
@@ -9,9 +8,9 @@ using Recurrences
 using AlgebraicDependencies
 using Singular
 
-include("singular_imap.jl")
 include("looptransform.jl")
-include("invs.jl")
+include("invariants.jl")
+include("singular.jl")
 
 function aligator(str::String)
     _, total = @timed begin
