@@ -37,8 +37,8 @@ function aligator(str::String)
 end
 
 function __init__()
-    include(joinpath(@__DIR__,"..", "benchmark", "singlepath.jl"))
-    include(joinpath(@__DIR__,"..", "benchmark", "multipath.jl"))
+    include(joinpath(@__DIR__, "..", "benchmark", "singlepath.jl"))
+    include(joinpath(@__DIR__, "..", "benchmark", "multipath.jl"))
 
     singlepath = [:cohencu, :freire1, :freire2, :(petter(1)), :(petter(2)), :(petter(3)), :(petter(4))]
     multipath = [:divbin, :euclidex, :fermat, :knuth, :lcm, :mannadiv, :wensley]

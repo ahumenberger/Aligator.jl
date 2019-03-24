@@ -33,8 +33,8 @@ end
 
 function stateideal(iter::BranchIterator, I::sideal, state::Int)
     is = [initvar(v, 0) for v in iter.vars]
-    ms = [initvar(v, state+1) for v in iter.vars]
-    fs = [initvar(v, state+2) for v in iter.vars]
+    ms = [initvar(v, state + 1) for v in iter.vars]
+    fs = [initvar(v, state + 2) for v in iter.vars]
     as = iter.auxvars
     R, _ = PolynomialRing(QQ, map(string, [ms; fs; as; is]))
     mss, _, ass, _ = splitgens(R, ms, fs, as, is)
@@ -100,10 +100,10 @@ function fixedpoint(biter::BranchIterator, vars::Vector{String})
         T = Singular.eliminate(T + J, elim...)
 
         if i % bcount == 0
-            fs = [initvar(v, i+1) for v in vars]
+            fs = [initvar(v, i + 1) for v in vars]
             RR, _ = PolynomialRing(QQ, [fs; is])
             II = std(fetch(imap(T, RR), R)) # map current ideal to final ring
-            @debug "Check if ideals are equal" T II I R isequal(I,II)
+            @debug "Check if ideals are equal" T II I R isequal(I, II)
             if isequal(I, II)
                 return I
             end
@@ -115,7 +115,7 @@ end
 
 # ------------------------------------------------------------------------------
 
-function invariants(cs::Vector{Vector{T}}, vars::Vector{Symbol}) where {T<:Recurrences.ClosedForm}
+function invariants(cs::Vector{Vector{T}}, vars::Vector{Symbol}) where {T <: Recurrences.ClosedForm}
     ps = Vector{Basic}[]
     as = Basic[]
     for c in cs
@@ -126,13 +126,13 @@ function invariants(cs::Vector{Vector{T}}, vars::Vector{Symbol}) where {T<:Recur
     invariants(ps, map(Basic, vars), as)
 end
 
-function polys(cs::Vector{T}, vars::Vector{Symbol}) where {T<:Recurrences.ClosedForm}
+function polys(cs::Vector{T}, vars::Vector{Symbol}) where {T <: Recurrences.ClosedForm}
     ls = Basic[]
     vs = Symbol[]
     exps = Base.unique(Iterators.flatten(map(exponentials, cs)))
-    exps = filter(x->x!=1, exps)
+    exps = filter(x->x != 1, exps)
     evars = [Basic(Recurrences.gensym_unhashed(:v)) for _ in 1:length(exps)]
-    ls = dependencies(exps; variables=evars)
+    ls = dependencies(exps; variables = evars)
     expmap = Dict(zip(exps, evars))
     @debug "Exponentials" exps expmap
     for c in cs

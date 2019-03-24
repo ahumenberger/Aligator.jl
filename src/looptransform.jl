@@ -1,5 +1,5 @@
 function transform(expr::Expr)
-    expr = MacroTools.postwalk(x -> x isa Expr &&  x.head == :elseif ? Expr(:if, x.args...) : x, expr)
+    expr = MacroTools.postwalk(x->x isa Expr && x.head == :elseif ? Expr(:if, x.args...) : x, expr)
     _transform(MacroTools.striplines(expr))
 end
 
