@@ -3,7 +3,11 @@ uuid = "5ed869e0-1a60-11e9-29ae-17f02fe22408"
 version = "0.1.0"
 
 [deps]
+AlgebraicDependencies = "df504336-4c6f-11e9-304d-b3facd222262"
 ContinuedFractions = "b28563ba-f3de-538b-bd45-5b40df25bcd0"
+MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
 PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
+Recurrences = "618f9978-cfe8-11e8-0262-8317e6e32198"
 Singular = "07ff78f2-aaa2-527c-9c0a-731feae108f8"
+SymEngine = "123dc426-2d89-5057-bbad-38513e3affd8"
 SymPy = "24249f21-da20-56a4-8eb1-6a02cf4ae2e6"
