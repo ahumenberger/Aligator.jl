@@ -6,7 +6,7 @@ struct BranchIterator
 end
 
 function BranchIterator(bs::Vector{Vector{Basic}}, vars::Vector{Basic}, auxvars::Vector{Basic})
-    vs = [vars; map(initvar, vars); auxvars]
+    vs = [map(initvar, vars); vars; auxvars]
     R, _ = PolynomialRing(QQ, map(string, vs))
     ideals = [Singular.Ideal(R, map(R, b)) for b in bs]
     @debug "Ideals in branch iterator" ideals
@@ -77,7 +77,7 @@ end
 
 function fixedpoint(biter::BranchIterator, vars::Vector{String})
     is = [initvar(v, 0) for v in vars]    
-    vs = [vars; is]
+    vs = [is; vars]
     R, _ = PolynomialRing(QQ, vs)
     bcount = nbranches(biter)
     I = Singular.Ideal(R)
@@ -119,10 +119,11 @@ function polys(cs::Vector{T}, vars::Vector{Symbol}) where {T <: Recurrences.Clos
     ls = Basic[]
     vs = Symbol[]
     exps = Base.unique(Iterators.flatten(map(exponentials, cs)))
-    exps = filter(x->x != 1, exps)
+    filter!(x->!iszero(x) && !isone(x), exps)
     evars = [Basic(Recurrences.gensym_unhashed(:v)) for _ in 1:length(exps)]
     ls = dependencies(exps; variables = evars)
     expmap = Dict(zip(exps, evars))
+    push!(expmap, zero(Basic) => zero(Basic))
     @debug "Exponentials" exps expmap
     for c in cs
         exp = exponentials(c)
