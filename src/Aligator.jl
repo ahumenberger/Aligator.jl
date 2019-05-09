@@ -23,7 +23,7 @@ function aligator(x::Expr)
         _, stime = @timed begin
             cforms = Vector{ClosedForm}[]
             for b in branches
-                lrs = lrs_sequential(Vector{Expr}(b.args), :n)
+                lrs = lrs_sequential(Vector{Expr}(b.args), Recurrences.gensym_unhashed(:n))
                 push!(cforms, Recurrences.solve(lrs))
             end
         end
@@ -32,7 +32,7 @@ function aligator(x::Expr)
         invs, itime = @timed invariants(cforms, vars)
         @debug "Invariant ideal" invs
     end
-    @info "Time needed" total etime stime itime
+    # @info "Time needed" total etime stime itime
 
     return map(Meta.parse ∘ string, invs)
 end
