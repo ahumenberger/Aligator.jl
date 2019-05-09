@@ -5,8 +5,11 @@ using Aligator
 include("singlepath.jl")
 include("multipath.jl")
 
-singlepath = [:cohencu, :freire1, :freire2, :(petter(1)), :(petter(2)), :(petter(3)), :(petter(4))]
-multipath = [:divbin, :euclidex, :fermat, :knuth, :lcm, :mannadiv, :wensley]
+# singlepath = [:cohencu, :freire1, :freire2, :(petter(1)), :(petter(2)), :(petter(3)), :(petter(4))]
+# multipath = [:divbin, :euclidex, :fermat, :knuth, :lcm, :mannadiv, :wensley]
+
+singlepath = [:cohencu, :freire1, :freire2]
+multipath = [:euclidex, :fermat, :knuth, :lcm, :wensley]
 
 const ijcar18 = BenchmarkGroup()
 ijcar18["singlepath"] = BenchmarkGroup()
@@ -26,7 +29,7 @@ end
 tune!(ijcar18)
 results = run(ijcar18)
 
-showall(results)
+res = show(results)
 
 # results["singlepath"]
 # results["multipath"]
