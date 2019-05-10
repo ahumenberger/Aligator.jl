@@ -3,9 +3,12 @@ import Base.show
 import Base.==
 import Base.isequal
 import SymPy.solve
-import SymPy.coeff
 import SymPy.degree
 import SymPy.subs
+
+coeff(x::Sym, y::Sym) = x.coeff(y)
+is_polynomial(x::Sym, y::Sym) = x.is_polynomial(y)
+Poly(x::Sym, y::Sym) = sympy.Poly(x, y)
 
 abstract type Recurrence end
 
@@ -100,20 +103,20 @@ function closedform(orig::CFiniteRecurrence)
     shift = order(r) - order(orig)
     rh = rhs(orig)
     ord = order(orig)
-    init = Dict{Sym,Sym}([(orig.f(i), rh |> SymPy.replace(orig.n, i-ord)) for i in ord:shift+ord-1])
+    init = Dict{Sym,Sym}([(orig.f(i), SymPy.replace(rh, orig.n, i-ord)) for i in ord:shift+ord-1])
     # init = rewrite(init)
 
     rel = relation(r)
     # println("Homogeneous: ", homogeneous(r))
     w0  = Wild("w0")
     @syms lbd
-    cpoly   = rel |> SymPy.replace(r.f(r.n + w0), lbd^w0)
+    cpoly   = SymPy.replace(rel, r.f(r.n + w0), lbd^w0)
     # println("CPoly: ", cpoly |> simplify)
     # factors = factor_list(cpoly)
-    roots   = polyroots(cpoly)
+    proots   = roots(cpoly)
     # d = hcat([[uniquevar() * r.n^i, z^r.n] for (z, m) in roots for i in 0:m - 1])
     # println(d[:,2])
-    ansatz = sum([sum([uniquevar() * r.n^i * z^r.n for i in 0:m - 1]) for (z, m) in roots])
+    ansatz = sum([sum([uniquevar() * r.n^i * z^r.n for i in 0:m - 1]) for (z, m) in proots])
     # println(ansatz)
     # println(free_symbols(ansatz(n)))
     unknowns = filter(e -> e != r.n, free_symbols(ansatz))
@@ -133,7 +136,7 @@ function closedform(orig::CFiniteRecurrence)
         sol = simplify(tmp)
     end
     
-    exp = [z for (z, _) in roots]
+    exp = [z for (z, _) in proots]
     exp = filter(x -> x!=Sym(1), exp)
     push!(exp, Sym(1))
     coeff = exp_coeffs(sol, [z^r.n for z in exp])
@@ -162,7 +165,7 @@ end
 function rec_dependency(indep, dep, rec::Recurrence, recs::Recurrence...)
     expr = rhs(rec)
     fns = symfunctions(expr)
-    depvars = filter(x -> (func(x)!=Sym(rec.f.x) && !in(Sym(0), args(x))), fns)
+    depvars = filter(x -> (x.func!=Sym(rec.f.x) && !in(Sym(0), x.args)), fns)
     
     if isempty(depvars)
         push!(indep, rec)
@@ -181,7 +184,7 @@ function subs(cf::ClosedForm, r::CFiniteRecurrence)
     rhs = poly(cf)
     fns = symfunctions(rel)
     for fn in fns
-        if func(fn) == Sym(cf.f.x)
+        if fn.func == Sym(cf.f.x)
             w0 = Wild("w0")
             idx = match(cf.f(cf.n + w0), fn)[w0]
             sub = rhs |> SymPy.subs(cf.n, cf.n + idx)
@@ -235,14 +238,14 @@ function rec_solve(recsorig::Array{<: Recurrence,1})
     for cf in solved
         inivars = [inivars; initvars(cf)]
     end
-    inivars = [(SymFunction(string(func(x))), args(x)[1]) for x in inivars]
+    inivars = [(SymFunction(string(x.func)), x.args[1]) for x in inivars]
     inivars = filter(x -> x[2]>0, inivars)
     iniexpr = init_expr(recsorig, inivars)
     # println("Initial expression: ", iniexpr)
 
     for var in varlist
         # TODO: assume var is something like (t(n-1), x)
-        fn = SymFunction(string(func(var[1])))
+        fn = SymFunction(string(var[1].func))
         if fn != var[2]
             for cf in solved
                 if cf.f == fn

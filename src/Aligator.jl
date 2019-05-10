@@ -39,7 +39,7 @@ function aligator(str::String)
 end
 
 function __init__()
-    copy!(AppliedUndef, PyCall.pyimport_conda("sympy.core.function", "sympy")[:AppliedUndef])
+    copy!(AppliedUndef, PyCall.pyimport_conda("sympy.core.function", "sympy").AppliedUndef)
 
     include(joinpath(@__DIR__,"..", "benchmark", "singlepath.jl"))
     include(joinpath(@__DIR__,"..", "benchmark", "multipath.jl"))

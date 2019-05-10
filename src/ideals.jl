@@ -49,9 +49,9 @@ function replace_sympy(ex, vars::Dict)
 end
 
 @syms x y
-const ADD = func(x+y)
-const MUL = func(x*y)
-const POW = func(x^y)
+const ADD = (x+y).func
+const MUL = (x*y).func
+const POW = (x^y).func
 
 function sym2spoly(b::Array{Sym, 1})
     fvars = union(free_symbols.(b)...)
@@ -67,7 +67,7 @@ end
 function shallow_replace(expr::Sym, vars::Dict)
     fn = funcname(expr)
     # println("Function: ", fn==ADD)
-    a = [shallow_replace(arg, vars) for arg in args(expr)]
+    a = [shallow_replace(arg, vars) for arg in expr.args]
     # println("Start: ", expr)
     # println("Start: ", a)
     if fn == "Add"

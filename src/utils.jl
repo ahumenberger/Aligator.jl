@@ -7,7 +7,7 @@ unique_var_count = 0
 
 function uniquevar(v="v")
     global unique_var_count += 1
-    return Sym(Symbol("$v$unique_var_count"))
+    return sympify(Symbol("$v$unique_var_count"))
 end
 
 function replace!(a::Array{T}, d::Dict{T,T}) where T
@@ -23,7 +23,7 @@ function replace(a::Array{T}, d::Dict{T,T}) where T
 end
 
 function symfunctions(expr::Sym)
-    return Sym.(collect(atoms(expr, AppliedUndef)))
+    return Sym.(collect(expr.atoms(AppliedUndef)))
 end
 
 # override show for SymPy.SymFunction
@@ -32,14 +32,14 @@ end
 # end
 
 function coeff_rem(expr::Sym, t::Sym)
-    c = SymPy.coeff(expr, t)
+    c = coeff(expr, t)
     return c, expr - c*t
 end
 
 function summands(expr::Sym)
     expr = expand(expr)
     if funcname(expr) == "Add"
-        return args(expr)
+        return expr.args
     end
     expr
 end
