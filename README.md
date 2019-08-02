@@ -19,7 +19,7 @@ julia> using Aligator
 julia> loop = """
          while true
            x = 2x
-           y = 1/2y
+           y = 1/2*y
          end
        """
 julia> aligator(loop)
