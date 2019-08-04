@@ -15,7 +15,7 @@ end
 
 function _transform(expr)
     res = @match expr begin
-        if _ x_ end         => [_transform(x), Expr(:block)]
+        if _ x_ end         => [_transform(x); Expr(:block)]
         if _ x_ else y_ end => [_transform(x); _transform(y)]
         (x_ = y_)           => [block(expr)]
     end
