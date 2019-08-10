@@ -26,15 +26,15 @@ function aligator(str::String)
     _, total = @timed begin
 
         loop, time = @timed extract_loop(str)
-        @info "Recurrence extraction" time
+        @debug "Recurrence extraction" time
 
         cforms, time = @timed closed_forms(loop)
-        @info "Recurrence solving" time
+        @debug "Recurrence solving" time
         
         invs, time = @timed invariants(cforms)
-        @info "Ideal computation" time
+        @debug "Ideal computation" time
     end
-    @info "Total time needed" total
+    @debug "Total time needed" total
     
     return InvariantIdeal(invs)
 end
