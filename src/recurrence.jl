@@ -110,7 +110,8 @@ function closedform(orig::CFiniteRecurrence)
     # println("Homogeneous: ", homogeneous(r))
     w0  = Wild("w0")
     @syms lbd
-    cpoly   = SymPy.replace(rel, r.f(r.n + w0), lbd^w0)
+    cpoly   = SymPy.replace(rel, r.f(r.n), 1)
+    cpoly   = SymPy.replace(cpoly, r.f(r.n + w0), lbd^w0)
     # println("CPoly: ", cpoly |> simplify)
     # factors = factor_list(cpoly)
     proots   = roots(cpoly)
@@ -150,7 +151,7 @@ function exp_coeffs(expr::Sym, exp::Array{Sym,1})
         if ex == Sym(1)
             push!(coeffs, expr)
         else
-            c = SymPy.coeff(expr, simplify(ex))
+            c = coeff(expr, simplify(ex))
             push!(coeffs, c)
             expr = simplify(expr - c*ex)
         end

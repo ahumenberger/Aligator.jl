@@ -7,6 +7,7 @@ using PyCall
 using SymPy
 using Singular
 using ContinuedFractions
+using AlgebraicDependencies
 
 const AppliedUndef = PyCall.PyNULL()
 

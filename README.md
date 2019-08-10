@@ -18,8 +18,8 @@ pkg> add https://github.com/ahumenberger/Aligator.jl
 julia> using Aligator
 julia> loop = """
          while true
-           x = 2x
-           y = 1/2y
+           x = 2*x
+           y = 1/2*y
          end
        """
 julia> aligator(loop)

@@ -74,7 +74,7 @@ function Base.show(io::IO, cfs::Aligator.ClosedFormSystem)
         println(io, "$(length(cfs.cforms))-element $(typeof(cfs)):")
         for cf in cfs.cforms
             print(io, " ")
-            showcompact(io, cf)
+            show(io, cf)
             print(io, "\n")
         end
     end

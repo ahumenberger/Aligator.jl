@@ -4,7 +4,7 @@ import Singular.QQ
 
 #-------------------------------------------------------------------------------
 
-funcname(x) = PyCall.PyObject(x)[:func][:__name__]
+funcname(x) = PyCall.PyObject(x).func.__name__
 
 fn_map = Dict(
               "Add" => :+,

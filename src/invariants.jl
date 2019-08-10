@@ -91,7 +91,9 @@ function preprocess(loops::Array{ClosedFormSystem,1}; singleloop::Bool = false)
         if !isempty(expvars)
             expsym = Sym.(expvars)
             expmap = Dict(zip(exp, expsym))
-            expvars!.(cfs, expmap)
+            for cf in cfs
+                expvars!(cf, expmap)
+            end
         end
 
         # generate basis of closed forms
@@ -112,7 +114,7 @@ function preprocess(loops::Array{ClosedFormSystem,1}; singleloop::Bool = false)
         # dependencies
         if !isempty(exp)
             # println("Something with dependencies?????")            
-            A = dependencies(exp, variables = expsym)
+            A = AlgebraicDependencies.dependencies(sideal, exp, variables=expsym)
             if A != nothing
                 # println("Something with imap?????")
                 I += imap(A, R)

@@ -3,6 +3,7 @@ uuid = "5ed869e0-1a60-11e9-29ae-17f02fe22408"
 version = "0.1.0"
 
 [deps]
+AlgebraicDependencies = "df504336-4c6f-11e9-304d-b3facd222262"
 ContinuedFractions = "b28563ba-f3de-538b-bd45-5b40df25bcd0"
 PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
 Singular = "07ff78f2-aaa2-527c-9c0a-731feae108f8"
