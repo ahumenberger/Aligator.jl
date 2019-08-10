@@ -17,7 +17,6 @@ include("recurrence.jl")
 include("loop.jl")
 include("invariants.jl")
 include("parse_julia.jl")
-include("dependencies.jl")
 include("ideals.jl")
 include("singular_imap.jl")
 
