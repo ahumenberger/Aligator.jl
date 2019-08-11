@@ -119,7 +119,7 @@ function preprocess(loops::Array{ClosedFormSystem,1}; singleloop::Bool = false)
                 # println("Something with imap?????")
                 I += imap(A, R)
             else
-                info("No algebraic dependencies among exponentials.")
+                @debug "No algebraic dependencies among exponentials"
             end
         end    
 
