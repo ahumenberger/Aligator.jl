@@ -6,7 +6,6 @@ Aligator.jl is a Julia package for the automated generation of loop invariants. 
 ## Installation
 
 ```julia
-pkg> add ContinuedFractions#master
 pkg> add https://github.com/ahumenberger/Singular.jl
 
 pkg> add https://github.com/ahumenberger/Aligator.jl

@@ -6,7 +6,6 @@ export aligator, extract_loop, closed_forms, invariants
 using PyCall
 using SymPy
 using Singular
-using ContinuedFractions
 using AlgebraicDependencies
 
 const AppliedUndef = PyCall.PyNULL()
