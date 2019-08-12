@@ -196,6 +196,7 @@ function subs(cf::ClosedForm, r::CFiniteRecurrence)
 end
 
 function rec_solve(recsorig::Array{<: Recurrence,1})
+    @info "Recurrences" recsorig
     # println("Recurrences: ", recs)
     if length(recsorig) == 0
         return ClosedForm[]

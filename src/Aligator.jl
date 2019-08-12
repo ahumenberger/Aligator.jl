@@ -7,6 +7,7 @@ using PyCall
 using SymPy
 using Singular
 using AlgebraicDependencies
+using MacroTools
 
 const AppliedUndef = PyCall.PyNULL()
 
@@ -15,15 +16,17 @@ include("closedform.jl")
 include("recurrence.jl")
 include("loop.jl")
 include("invariants.jl")
-include("parse_julia.jl")
+# include("parse_julia.jl")
 include("ideals.jl")
 include("singular_imap.jl")
+include("looptransform.jl")
 
 
 function aligator(str::String)
     _, total = @timed begin
 
-        loop, time = @timed extract_loop(str)
+        loop, time = @timed extract_loop(Meta.parse(str))
+        @info "" loop
         @debug "Recurrence extraction" time
 
         cforms, time = @timed closed_forms(loop)
