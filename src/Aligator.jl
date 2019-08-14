@@ -34,7 +34,16 @@ function aligator(x::Expr)
     end
     # @info "Time needed" total etime stime itime
 
-    return map(Meta.parse ∘ string, invs)
+    return InvariantIdeal(invs)
+end
+
+struct InvariantIdeal
+    ideal::sideal
+end
+
+function Base.show(io::IO, I::InvariantIdeal)
+    println(io, "Invariant ideal with $(ngens(I.ideal))-element basis:")
+    Base.print_array(io, gens(I.ideal))
 end
 
 function __init__()
