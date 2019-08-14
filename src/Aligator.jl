@@ -23,7 +23,7 @@ function aligator(x::Expr)
         _, stime = @timed begin
             cforms = Vector{ClosedForm}[]
             for b in branches
-                lrs = lrs_sequential(Vector{Expr}(b.args), Recurrences.gensym_unhashed(:n))
+                lrs, _ = lrs_sequential(Vector{Expr}(b.args), Recurrences.gensym_unhashed(:n))
                 push!(cforms, Recurrences.solve(lrs))
             end
         end

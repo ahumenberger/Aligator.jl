@@ -121,7 +121,7 @@ function polys(cs::Vector{T}, vars::Vector{Symbol}) where {T <: Recurrences.Clos
     exps = Base.unique(Iterators.flatten(map(exponentials, cs)))
     filter!(x->!iszero(x) && !isone(x), exps)
     evars = [Basic(Recurrences.gensym_unhashed(:v)) for _ in 1:length(exps)]
-    ls = dependencies(exps; variables = evars)
+    ls = isempty(exps) ? Basic[] : dependencies(exps; variables = evars)
     expmap = Dict(zip(exps, evars))
     push!(expmap, zero(Basic) => zero(Basic))
     @debug "Exponentials" exps expmap
