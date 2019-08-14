@@ -239,7 +239,7 @@ function rec_solve(recsorig::Array{<: Recurrence,1})
     for cf in solved
         inivars = [inivars; initvars(cf)]
     end
-    inivars = [(SymFunction(string(x.func)), x.args[1]) for x in inivars]
+    inivars = [(SymFunction(string(Sym(x.func))), x.args[1]) for x in inivars]
     inivars = filter(x -> x[2]>0, inivars)
     iniexpr = init_expr(recsorig, inivars)
     # println("Initial expression: ", iniexpr)
@@ -269,10 +269,10 @@ end
 function init_expr(recs::Array{<:Recurrence,1}, vars::Array{Tuple{SymFunction,Sym},1})
     initrules = Pair[]
     for (var, idx) in vars
-        rec = [r for r in recs if r.f == var][1]
+        rec = [r for r in recs if string(r.f) == string(var)][1]
         rhs = initial(rec, idx)
         while true
-            newvars = [(SymFunction(string(func(t))), args(t)[1]) for t in symfunctions(rhs) if args(t)[1] > 0]
+            newvars = [(SymFunction(string(Sym(t.func))), t.args[1]) for t in symfunctions(rhs) if t.args[1] > 0]
             # newvars = filter(x -> x[2]>0, newvars)
             if isempty(newvars)
                 break
