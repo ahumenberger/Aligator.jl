@@ -7,23 +7,26 @@ using SymEngine
 using Recurrences
 using AlgebraicDependencies
 using Singular
+using AbstractAlgebra
+using Nemo
 
 include("looptransform.jl")
+include("map.jl")
 include("invariants.jl")
-include("singular.jl")
+# include("singular.jl")
 
 aligator(s::String) = aligator(Meta.parse(s))
 
 function aligator(x::Expr)
     _, total = @timed begin
         branches, etime = @timed extract_loops(x)
-        vars = Base.unique(Iterators.flatten(map(Recurrences.free_symbols, branches)))
+        vars = Base.unique(Iterators.flatten(map(Recurrences.symbols, branches)))
         @debug "Extracting branches" branches vars
 
         _, stime = @timed begin
             cforms = Vector{ClosedForm}[]
             for b in branches
-                lrs, _ = lrs_sequential(Vector{Expr}(b.args), Recurrences.gensym_unhashed(:n))
+                lrs = lrs_sequential(Vector{Expr}(b.args), Recurrences.gensym_unhashed(:n))
                 push!(cforms, Recurrences.solve(lrs))
             end
         end
@@ -42,7 +45,7 @@ struct InvariantIdeal
 end
 
 function Base.show(io::IO, I::InvariantIdeal)
-    println(io, "Invariant ideal with $(ngens(I.ideal))-element basis:")
+    println(io, "Invariant ideal with $(Singular.ngens(I.ideal))-element basis:")
     Base.print_array(io, gens(I.ideal))
 end
 

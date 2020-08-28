@@ -1,10 +1,61 @@
+const RExpr = Union{Expr,Symbol,Number}
+
+replace_post(ex, s, s′) = MacroTools.postwalk(x -> x == s ? s′ : x, ex)
+replace_post(ex, dict) = MacroTools.postwalk(x -> x in keys(dict) ? dict[x] : x, ex)
+
+function free_symbols(ex::Expr)
+    ls = Symbol[]
+    MacroTools.postwalk(x -> x isa Symbol && Base.isidentifier(x) ? push!(ls, x) : x, ex)
+    Base.unique(ls)
+end
+
+function split_assign(xs::Vector{Expr})
+    ls = Symbol[]
+    rs = RExpr[]
+    for x in xs
+        @capture(x, l_ = r_)
+        push!(ls, unblock(l))
+        push!(rs, unblock(r))
+    end
+    ls, rs
+end
+
+function _parallel(lhss::Vector{Symbol}, rhss::Vector{RExpr})
+    del = Int[]
+    dict = collect(zip(lhss, rhss))
+    for (i,v) in enumerate(lhss)
+        rhss[i] = replace_post(rhss[i], Dict(dict[1:i-1]))
+    end
+    _lhss, _rhss = Symbol[], RExpr[]
+    for (l, r) in reverse(collect(zip(lhss, rhss)))
+        if l ∉ _lhss
+            pushfirst!(_lhss, l)
+            pushfirst!(_rhss, r)
+        end
+    end
+    _lhss, _rhss
+end
+
+function lrs_sequential(exprs::Vector{Expr}, lc::Symbol = gensym_unhashed(:n))
+    lhss, rhss = _parallel(split_assign(exprs)...)
+    @debug "Splitted and parallel assignments" rhss lhss
+    
+    lines = Expr[]
+    for (l, r) in zip(lhss, rhss)
+        _l = Recurrences.symbol_walk(x->:($x($(lc)+1)), l)
+        _r = Recurrences.symbol_walk(x->:($x($(lc))), r)
+        push!(lines, :($(_l) = $(_r)))
+    end
+    Recurrences.lrs(lines)
+end
+
 function transform(expr::Expr)
     expr = MacroTools.postwalk(x->x isa Expr && x.head == :elseif ? Expr(:if, x.args...) : x, expr)
     branches = _transform(MacroTools.striplines(expr))
 
-    vars = Base.unique(Iterators.flatten(map(Recurrences.free_symbols, branches)))
+    vars = Base.unique(Iterators.flatten(map(free_symbols, branches)))
     for b in branches
-        lhss, _ = Recurrences.split_assign(Vector{Expr}(b.args))
+        lhss, _ = split_assign(Vector{Expr}(b.args))
         left = setdiff(vars, lhss)
         for v in left
             push!(b.args, :($v = $v))
