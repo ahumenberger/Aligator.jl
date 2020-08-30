@@ -117,6 +117,8 @@ function invariants(cs::Vector{Vector{T}}, vars::Vector{Symbol}) where {T <: Clo
     invariants(ps, vars, as)
 end
 
+# ------------------------------------------------------------------------------
+
 AbstractAlgebra.isconstant(x::FracElem) = AbstractAlgebra.isconstant(numerator(x)) && AbstractAlgebra.isconstant(denominator(x))
 
 get_constant(x::PolyElem) = get_constant(AbstractAlgebra.coeff(x, 0))
