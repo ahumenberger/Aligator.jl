@@ -70,6 +70,7 @@ function(m::IndexMap)(p::MPolyElem; force=false)
 end
 
 function(m::Union{IndexMap,IdMap})(I::sideal)
+    iszero(I) && return Singular.Ideal(m.R)
     Singular.Ideal(m.R, [m(p; force=true) for p in gens(I)])
 end
 
