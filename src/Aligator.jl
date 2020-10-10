@@ -3,14 +3,15 @@ module Aligator
 export aligator
 
 using MacroTools
-using SymEngine
 using Recurrences
 using AlgebraicDependencies
 using Singular
 using AbstractAlgebra
 using Nemo
+using SymEngine
 
 include("looptransform.jl")
+include("extract.jl")
 include("map.jl")
 include("invariants.jl")
 # include("singular.jl")
@@ -19,23 +20,17 @@ aligator(s::String) = aligator(Meta.parse(s))
 
 function aligator(x::Expr)
     _, total = @timed begin
-        branches, etime = @timed extract_loops(x)
+        (init, branches), etime = @timed transform(x)
         vars = Base.unique(Iterators.flatten(map(Recurrences.symbols, branches)))
         @debug "Extracting branches" branches vars
 
-        _, stime = @timed begin
-            cforms = Vector{ClosedForm}[]
-            for b in branches
-                lrs = lrs_sequential(Vector{Expr}(b.args), Recurrences.gensym_unhashed(:n))
-                push!(cforms, Recurrences.solve(lrs))
-            end
-        end
-        @debug "Closed forms" cforms
+        closedforms = extract(branches, init)
+        @debug "Recurrence Systems" closedforms
 
-        invs, itime = @timed invariants(cforms, vars)
+        invs, itime = @timed invariants(closedforms, vars)
         @debug "Invariant ideal" invs
     end
-    # @info "Time needed" total etime stime itime
+    @info "Time needed" total etime itime
 
     return InvariantIdeal(invs)
 end

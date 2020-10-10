@@ -111,7 +111,7 @@ function invariants(cs::Vector{Vector{T}}, _vars::Vector{Symbol}) where {T <: An
     vars = [x for x in intersect(__vars...)]
     removed = setdiff(Set(_vars), Set(vars))
     if !isempty(removed)
-        @info "No closed form found for $removed"
+        @debug "No closed form found for $removed"
     end
     ps = Vector{MPolyElem}[]
     as = Symbol[]

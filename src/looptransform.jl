@@ -9,6 +9,43 @@ function free_symbols(ex::Expr)
     Base.unique(ls)
 end
 
+free_symbols(s::Symbol) = [s]
+free_symbols(x) = []
+
+multiplication_walk(f, expr) = MacroTools.prewalk(expr) do x
+    if @capture(x, g_(a__)) 
+        if g == :*
+            f(a)
+        elseif g == :^
+            f(first(a))
+        end
+    end
+    x
+end
+
+
+function find_multiplications(ex::RExpr)
+    ex = convert(Expr, expand(convert(Basic, ex)))
+    syms = Symbol[]
+    multiplication_walk(ex) do vs
+        if vs isa Expr
+            append!(syms, free_symbols(vs))
+        elseif vs isa Vector
+            filter!(x->!isa(x, Number), vs)
+            if length(vs) > 1
+                for v in vs
+                    append!(syms, free_symbols(v))
+                end
+            end
+        elseif vs isa Symbol
+            push!(syms, vs)
+        else
+            error("Something else: $vs")
+        end
+    end
+    Base.unique(syms)
+end
+
 function split_assign(xs::Vector{Expr})
     ls = Symbol[]
     rs = RExpr[]
@@ -19,6 +56,16 @@ function split_assign(xs::Vector{Expr})
     end
     ls, rs
 end
+
+# function iscounter(l::Symbol, r::RExpr)
+#     @match r begin
+#         $l + c_ => c isa Number
+#         c_ + $l => c isa Number
+#         $l - c_ => c isa Number
+#         c_ - $l => c isa Number
+#         _      => false
+#     end
+# end
 
 function _parallel(lhss::Vector{Symbol}, rhss::Vector{RExpr})
     del = Int[]
@@ -36,20 +83,28 @@ function _parallel(lhss::Vector{Symbol}, rhss::Vector{RExpr})
     _lhss, _rhss
 end
 
-function lrs_sequential(exprs::Vector{Expr}, lc::Symbol = gensym_unhashed(:n))
-    lhss, rhss = _parallel(split_assign(exprs)...)
-    @debug "Splitted and parallel assignments" rhss lhss
+# function lrs_sequential(exprs::Vector{Expr}, lc::Symbol = gensym_unhashed(:n))
+#     lhss, rhss = _parallel(split_assign(exprs)...)
+#     @debug "Splitted and parallel assignments" rhss lhss
     
-    lines = Expr[]
-    for (l, r) in zip(lhss, rhss)
-        _l = Recurrences.symbol_walk(x->:($x($(lc)+1)), l)
-        _r = Recurrences.symbol_walk(x->:($x($(lc))), r)
-        push!(lines, :($(_l) = $(_r)))
-    end
-    Recurrences.lrs(lines)
-end
+#     lines = Expr[]
+#     mvars = Symbol[]
+#     loop_counters = Symbol[]
+#     for (l, r) in zip(lhss, rhss)
+#         _mvars = find_multiplications(r)
+#         filter!(x->x!=l, _mvars)
+#         append!(mvars, _mvars)
+#         if iscounter(l, r)
+#             push!(loop_counters, l)
+#         end
+#         _l = Recurrences.symbol_walk(x->:($x($(lc)+1)), l)
+#         _r = Recurrences.symbol_walk(x->:($x($(lc))), r)
+#         push!(lines, :($(_l) = $(_r)))
+#     end
+#     Recurrences.lrs(lines)
+# end
 
-function transform(expr::Expr)
+function __transform_body(expr::Expr)
     expr = MacroTools.postwalk(x->x isa Expr && x.head == :elseif ? Expr(:if, x.args...) : x, expr)
     branches = _transform(MacroTools.striplines(expr))
 
@@ -91,7 +146,18 @@ function _transform(expr)
     return res
 end
 
-function extract_loops(expr::Expr)
-    @assert expr.head == :for || expr.head == :while "Not a loop"
-    transform(expr.args[2])
+function __extract_init(xs::Vector{Expr})
+    m = Dict{Symbol, RExpr}()
+    for x in xs
+        if @capture(x, l_ = r_)
+            m[l] = r
+        end
+    end
+    return m
+end
+
+function transform(expr::Expr)
+    if @capture(expr, (init__; while _ body_ end))
+        __extract_init(Vector{Expr}(init)), __transform_body(body)
+    end
 end
