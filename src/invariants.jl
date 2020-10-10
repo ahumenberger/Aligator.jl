@@ -94,7 +94,7 @@ function fixedpoint(biter::BranchIterator, vars::Vector{String})
             fs = [Recurrences.initvar(v, i + 1) for v in vars]
             RR, _ = Singular.PolynomialRing(Nemo.QQ, [fs; is])
             II = std(fetch(imap(T, RR), R)) # map current ideal to final ring
-            @debug "Check if ideals are equal" T II I R isequal(I, II)
+            @debug "Check if ideals are equal" T II I std(I) R isequal(I, II)
             if isequal(I, II)
                 return I
             end
@@ -106,7 +106,13 @@ end
 
 # ------------------------------------------------------------------------------
 
-function invariants(cs::Vector{Vector{T}}, vars::Vector{Symbol}) where {T <: ClosedForm}
+function invariants(cs::Vector{Vector{T}}, _vars::Vector{Symbol}) where {T <: AnyClosedForm}
+    __vars = [Set(first(c) for c in branch) for branch in cs]
+    vars = [x for x in intersect(__vars...)]
+    removed = setdiff(Set(_vars), Set(vars))
+    if !isempty(removed)
+        @info "No closed form found for $removed"
+    end
     ps = Vector{MPolyElem}[]
     as = Symbol[]
     for c in cs
@@ -120,6 +126,7 @@ end
 # ------------------------------------------------------------------------------
 
 AbstractAlgebra.isconstant(x::FracElem) = AbstractAlgebra.isconstant(numerator(x)) && AbstractAlgebra.isconstant(denominator(x))
+AbstractAlgebra.isconstant(x::fmpq) = true
 
 get_constant(x::PolyElem) = get_constant(AbstractAlgebra.coeff(x, 0))
 get_constant(x::MPolyElem) = iszero(x) ? zero(base_ring(x)) : get_constant(AbstractAlgebra.coeff(x, 1))
@@ -129,7 +136,7 @@ get_constant(x::FieldElem) = x
 
 AbstractAlgebra.show_minus_one(::Type{T}) where T <: FracElem = false
 
-function polys(cs::Vector{Recurrences.ClosedForm}, _all_vars::Vector{Symbol})
+function polys(cs::Vector{ClosedForm}, _all_vars::Vector{Symbol})
 
     all_vars = copy(_all_vars)
 
@@ -145,24 +152,29 @@ function polys(cs::Vector{Recurrences.ClosedForm}, _all_vars::Vector{Symbol})
     end
 
     function map_fact(x::fmpq_poly)
-        v = var(x)
+        R = parent(x)
+        v = gen(parent(x))
         c = x - v
-        for (k, v) in factorials
+        @assert isconstant(c)
+        c = Nemo.coeff(c, 0)
+        for (k, s) in factorials
             d = k - c
-            iszero(d) && return v, one(x)
+            iszero(d) && return s, one(R)//one(R)
             if isone(denominator(d))
-                p = prod(v + k + i for i in 1:abs(d))
-                q = prod(c + i for i in 0:abs(d)-1)
-                if ispositive(d)
-                    return v, p // q
+                n = numerator(d)
+                p = prod(v + k + i for i in 1:abs(n))
+                q = R(prod(c + i for i in 0:abs(n)-1))
+                if n > 0
+                    return s, p // q
                 else
-                    return v, q // p
+                    return s, q // p
                 end
             end
         end
         s = Recurrences.gensym_unhashed(:f)
-        push!(geometrics, c=>s)
-        return s, one(x)
+        @assert isconstant(c)
+        push!(factorials, c=>s)
+        return s, one(R)//one(R)
     end
 
     function _poly(t::Recurrences.HyperTerm)
@@ -180,6 +192,7 @@ function polys(cs::Vector{Recurrences.ClosedForm}, _all_vars::Vector{Symbol})
             __vs = Pair{Symbol,fmpz}[]
             for (__fac, __mul) in __f
                 __var, __coeff = map_fact(__fac)
+                __coeff = change_base_ring(base_ring(base_ring(c)), __coeff)
                 c *= __coeff
                 push!(__vs, __var=>__mul)
             end
@@ -215,8 +228,8 @@ function polys(cs::Vector{Recurrences.ClosedForm}, _all_vars::Vector{Symbol})
         res = zero(R)
         for (coeff, geom, (fact_num, fact_den)) in terms
             c, g = σ(coeff), σ(geom)
-            fn = reduce(*, σ(x) for x in fact_num; init=one(R))
-            fd = reduce(*, σ(x) for x in fact_den; init=one(R))
+            fn = reduce(*, σ(first(x)) for x in fact_num; init=one(R))
+            fd = reduce(*, σ(first(x)) for x in fact_den; init=one(R))
             AbstractAlgebra.lcm(lcm, denominator(c)*fd)
             res += c*g*(fn//fd)
         end
@@ -228,7 +241,7 @@ function polys(cs::Vector{Recurrences.ClosedForm}, _all_vars::Vector{Symbol})
 
     polys = map(x->_to_mpoly(x...), res)
     for v in all_vars
-        push!(polys, σ(v) - Recurrences.initvar(v))
+        push!(polys, σ(v) - σ(Recurrences.initvar(v)))
     end
 
     if length(geometrics) > 0
@@ -242,5 +255,6 @@ function polys(cs::Vector{Recurrences.ClosedForm}, _all_vars::Vector{Symbol})
             end
         end
     end
+    @debug "Closed form polynomials" polys
     polys, Iterators.flatten(((v for v in values(geometrics)), (v for v in values(factorials)), [Symbol(rec_var)]))
 end
