@@ -155,7 +155,7 @@ function polys(cs::Vector{ClosedForm}, _all_vars::Vector{Symbol})
         R = parent(x)
         v = gen(parent(x))
         c = x - v
-        @assert isconstant(c)
+        @assert isconstant(c) c
         c = Nemo.coeff(c, 0)
         for (k, s) in factorials
             d = k - c
@@ -164,7 +164,8 @@ function polys(cs::Vector{ClosedForm}, _all_vars::Vector{Symbol})
                 n = numerator(d)
                 p = prod(v + k + i for i in 1:abs(n))
                 q = R(prod(c + i for i in 0:abs(n)-1))
-                if n > 0
+                @debug "map_fact" n p q factorials
+                if n < 0
                     return s, p // q
                 else
                     return s, q // p
@@ -187,8 +188,12 @@ function polys(cs::Vector{ClosedForm}, _all_vars::Vector{Symbol})
         dd = map_coeffs(get_constant, d)
 
         function __factor(__x::fmpq_poly)
-            __f = Nemo.factor(__x)
-            c *= get_constant(unit(__f))
+            if Nemo.degree(__x) == 1
+                __f = [(__x, 1)]
+            else
+                __f = Nemo.factor(__x)
+                c *= get_constant(unit(__f))
+            end
             __vs = Pair{Symbol,fmpz}[]
             for (__fac, __mul) in __f
                 __var, __coeff = map_fact(__fac)
@@ -198,9 +203,9 @@ function polys(cs::Vector{ClosedForm}, _all_vars::Vector{Symbol})
             end
             __vs
         end
-
         @assert AbstractAlgebra.isconstant(g)
-        c, map_geom(get_constant(g)), __factor(nn)=>__factor(dd)
+        facts = __factor(nn)=>__factor(dd)
+        c, map_geom(get_constant(g)), facts
     end
 
     function _poly(c::ClosedForm)
@@ -235,8 +240,8 @@ function polys(cs::Vector{ClosedForm}, _all_vars::Vector{Symbol})
         end
         AbstractAlgebra.lcm(lcm_global, lcm)
         rhs = lcm*res
-        @assert isone(denominator(rhs))
-        lcm*σ(v) - numerator(rhs)
+        # TODO: compute saturated ideal
+        denominator(rhs)*lcm*σ(v) - numerator(rhs)
     end
 
     polys = map(x->_to_mpoly(x...), res)
