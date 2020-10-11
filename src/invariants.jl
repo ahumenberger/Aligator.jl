@@ -35,10 +35,10 @@ end
 function Base.iterate(iter::BranchIterator)
     if length(iter) == 0
         return nothing
-    elseif length(iter) == 1
-        I = iter.bs[1]
-        _, _, as = splitgens(base_ring(I), iter.vars, iter.vars, iter.auxvars)
-        return (iter.bs[1], as), 1
+    # elseif length(iter) == 1
+    #     I = iter.bs[1]
+    #     _, _, as = splitgens(base_ring(I), iter.vars, iter.vars, iter.auxvars)
+    #     return (iter.bs[1], as), 1
     end
     stateideal(iter, iter.bs[1], 0), 1
 end
@@ -56,36 +56,37 @@ Base.length(iter::BranchIterator) = iter.length
 
 # ------------------------------------------------------------------------------
 
-function initial_ideal(vars::Vector{String})
+function initial_ideal(vars::Vector{String}, init::ValueMap)
     is = [Recurrences.initvar(v, 0) for v in vars]
     fs = [Recurrences.initvar(v, 1) for v in vars]
 
     R, svars = Singular.PolynomialRing(Nemo.QQ, [is; fs])
     iss, fss = splitgens(R, is, fs)
     
+    iss = [haskey(init, Symbol(v)) ? Nemo.QQ(init[Symbol(v)]) : iss[i] for (i, v) in enumerate(vars)]
+
     basis = [x - y for (x, y) in zip(iss, fss)]
     Singular.Ideal(R, basis)
 end
 
-function invariants(bs::Vector{Vector{MPolyElem}}, vars::Vector{Symbol}, auxvars::Vector{Symbol})
+function invariants(bs::Vector{Vector{MPolyElem}}, vars::Vector{Symbol}, auxvars::Vector{Symbol}, init::ValueMap)
     biter = BranchIterator(bs, vars, auxvars)
-    if length(biter) == 1
-        I, elim = first(biter)
-        I = Singular.eliminate(I, elim...)
-        return I
-    end
-    fixedpoint(biter, map(string, vars))
+    # if length(biter) == 1
+    #     I, elim = first(biter)
+    #     I = Singular.eliminate(I, elim...)
+    #     return I
+    # end
+    fixedpoint(biter, map(string, vars), init)
 end
 
-function fixedpoint(biter::BranchIterator, vars::Vector{String})
+function fixedpoint(biter::BranchIterator, vars::Vector{String}, init::ValueMap)
     is = [Recurrences.initvar(v, 0) for v in vars]    
-    vs = [is; vars]
+    vs = [vars; is]
     R, _ = Singular.PolynomialRing(Nemo.QQ, vs)
     bcount = nbranches(biter)
     I = Singular.Ideal(R)
-    T = initial_ideal(vars)
+    T = initial_ideal(vars, init)
     for (i, (J, elim)) in enumerate(biter)
-        @debug "Fixed point iterations $i" T J
         S = base_ring(J)
         T = imap(T, S) # map old ideal to new ring via variable name
         T = Singular.eliminate(T + J, elim...)
@@ -94,6 +95,9 @@ function fixedpoint(biter::BranchIterator, vars::Vector{String})
             fs = [Recurrences.initvar(v, i + 1) for v in vars]
             RR, _ = Singular.PolynomialRing(Nemo.QQ, [fs; is])
             II = std(fetch(imap(T, RR), R)) # map current ideal to final ring
+            if bcount == 1
+                return II
+            end
             @debug "Check if ideals are equal" T II I std(I) R isequal(I, II)
             if isequal(I, II)
                 return I
@@ -106,7 +110,7 @@ end
 
 # ------------------------------------------------------------------------------
 
-function invariants(cs::Vector{Vector{T}}, _vars::Vector{Symbol}) where {T <: AnyClosedForm}
+function invariants(cs::Vector{Vector{T}}, _vars::Vector{Symbol}, init::ValueMap) where {T <: Recurrences.ClosedForm}
     __vars = [Set(first(c) for c in branch) for branch in cs]
     vars = [x for x in intersect(__vars...)]
     removed = setdiff(Set(_vars), Set(vars))
@@ -120,7 +124,7 @@ function invariants(cs::Vector{Vector{T}}, _vars::Vector{Symbol}) where {T <: An
         push!(ps, p)
         push!(as, auxvars...)
     end
-    invariants(ps, vars, as)
+    invariants(ps, vars, as, init)
 end
 
 # ------------------------------------------------------------------------------

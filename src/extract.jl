@@ -3,12 +3,8 @@ const ValueMap = Dict{Symbol,Int}
 const RExprMap = Dict{Symbol,RExpr}
 const ExprVec = Vector{Expr}
 
-const ExprClosedForm = Pair{Symbol,RExpr}
-const AnyClosedForm = Union{ClosedForm,ExprClosedForm}
-
-function extract(branches::Vector{Expr}, init::RExprMap)
-    _init = ValueMap(k=>v for (k,v) in init if v isa Int)
-    [__extract_single(ExprVec(b.args), _init) for b in branches]
+function extract(branches::Vector{Expr}, init::ValueMap)
+    [__extract_single(ExprVec(b.args), init) for b in branches]
 end
 
 # Extract recurrence system from single-path loop

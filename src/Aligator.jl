@@ -21,16 +21,17 @@ aligator(s::String) = aligator(Meta.parse(s))
 function aligator(x::Expr)
     _, total = @timed begin
         (init, branches), etime = @timed transform(x)
+        init = ValueMap(k=>v for (k,v) in init if v isa Int)
         vars = Base.unique(Iterators.flatten(map(Recurrences.symbols, branches)))
         @debug "Extracting branches" branches vars
 
         closedforms = extract(branches, init)
         @debug "Recurrence Systems" closedforms
 
-        invs, itime = @timed invariants(closedforms, vars)
+        invs, itime = @timed invariants(closedforms, vars, init)
         @debug "Invariant ideal" invs
     end
-    @info "Time needed" total etime itime
+    @debug "Time needed" total etime itime
 
     return InvariantIdeal(invs)
 end
