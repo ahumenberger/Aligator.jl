@@ -1,5 +1,5 @@
 
-euclidex = """
+euclidex = quote
     while a != b
         if a > b
             a = a - b
@@ -11,9 +11,9 @@ euclidex = """
             s = s - r
         end
     end
-"""
+end
 
-fermat = """
+fermat = quote
     while r != 0
         if r > 0
             r = r - v
@@ -23,9 +23,9 @@ fermat = """
             u = u + 2
         end
     end
-"""
+end
 
-wensley = """
+wensley = quote
     while d>= E
         if P < a+b
             b = b/2
@@ -37,9 +37,9 @@ wensley = """
             d = d/2
         end
     end
-"""
+end
 
-lcm = """
+lcm = quote
     while x != y
         if x > y
             x = x - y
@@ -49,9 +49,9 @@ lcm = """
             u = u + v
         end
     end
-"""
+end
 
-knuth = """
+knuth = quote
     while (s >= d) && (r != 0)
         if 2*r-rp+q < 0
         t  = r
@@ -78,9 +78,9 @@ knuth = """
         d  = d+2
         end
     end
-"""
+end
 
-mannadiv = """
+mannadiv = quote
     while y3 != 0
         if y2 + 1 == x2
             y1 = y1 + 1
@@ -91,9 +91,9 @@ mannadiv = """
             y3 = y3 - 1
         end
     end
-"""
+end
 
-divbin = """
+divbin = quote
     while b != B
         x = 2*x
         b = b/2
@@ -102,4 +102,4 @@ divbin = """
             r = r-b
         end
     end
-"""
+end
