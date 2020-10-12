@@ -149,7 +149,11 @@ end
 function __extract_init(xs::Vector{Expr})
     m = Dict{Symbol, RExpr}()
     for x in xs
-        if @capture(x, l_ = r_)
+        if @capture(x, l_tuple = r_tuple)
+            for (ll, rr) in zip(l.args, r.args)
+                m[ll] = rr 
+            end
+        elseif @capture(x, l_ = r_)
             m[l] = r
         end
     end
