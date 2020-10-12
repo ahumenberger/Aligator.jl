@@ -192,14 +192,14 @@ function polys(cs::Vector{ClosedForm}, _all_vars::Vector{Symbol})
         dd = map_coeffs(get_constant, d)
 
         function __factor(__x::fmpq_poly)
-            if Nemo.degree(__x) == 1
-                __f = [(__x, 1)]
-            else
-                __f = Nemo.factor(__x)
-                c *= get_constant(unit(__f))
-            end
+            __f = Nemo.factor(__x)
+            c *= get_constant(unit(__f))
             __vs = Pair{Symbol,fmpz}[]
             for (__fac, __mul) in __f
+                # poly should be monic
+                lcoeff = Nemo.coeff(__fac, 1)
+                __fac = __fac * (1//lcoeff)
+                c *= lcoeff
                 __var, __coeff = map_fact(__fac)
                 __coeff = change_base_ring(base_ring(base_ring(c)), __coeff)
                 c *= __coeff
