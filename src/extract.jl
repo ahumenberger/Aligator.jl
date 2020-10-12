@@ -55,7 +55,7 @@ end
 function __is_loop_counter(l::Symbol, r::RExpr, init::ValueMap, lc::Symbol)
     inc = Basic(r) - Basic(l)
     if isempty(SymEngine.free_symbols(inc)) && haskey(init, l)
-        return :($(init[l]) + $(convert(Expr, inc))*$lc)
+        return :($(init[l]) + $(convert(Expr, inc))*($lc-1))
     end
     return nothing
 end
