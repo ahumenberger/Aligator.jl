@@ -14,7 +14,6 @@ include("looptransform.jl")
 include("extract.jl")
 include("map.jl")
 include("invariants.jl")
-# include("singular.jl")
 
 aligator(s::String) = aligator(Meta.parse(s))
 
@@ -45,12 +44,9 @@ function Base.show(io::IO, I::InvariantIdeal)
     Base.print_array(io, gens(I.ideal))
 end
 
-function __init__()
-    include(joinpath(@__DIR__, "..", "benchmark", "singlepath.jl"))
-    include(joinpath(@__DIR__, "..", "benchmark", "multipath.jl"))
-
-    singlepath = [:cohencu, :freire1, :freire2, :(petter(1)), :(petter(2)), :(petter(3)), :(petter(4))]
-    multipath = [:divbin, :euclidex, :fermat, :knuth, :lcm, :mannadiv, :wensley]
+module Examples
+include("../benchmark/singlepath.jl")
+include("../benchmark/multipath.jl")
 end
 
 end # module
