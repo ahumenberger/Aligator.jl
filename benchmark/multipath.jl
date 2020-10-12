@@ -141,6 +141,31 @@ extpsolv3 = quote
     end
 end
 
+extpsolv4 = quote
+    n1, n2 = 1, 1
+    while true
+        if true
+            a = 2*(n1+1)*(n1+3/2)*a
+            b = 4*(n1+1)*b
+            c = 1/2*(n1+3/2)*c
+            n1 = n1+1
+        elseif c>0
+            a = 2*a
+            b = 4*b
+            c = 1/2*c
+        elseif c<0
+            a = 2*(n2+1)^3*(n2+3/2)^3*a
+            b = 4*(n2+1)^3*b
+            c = 1/2*(n2+3/2)^3*c
+            n2 = n2+2
+        else
+            a = 6*a
+            b = 36*b
+            c = 1/6*c
+        end
+    end
+end
+
 extpsolv10 = quote
     n1, n2, n3, n4, n5 = 1, 1, 1, 1, 1
     while true
