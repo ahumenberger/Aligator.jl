@@ -28,6 +28,7 @@ function __extract_single(exprs::Vector{Expr}, init::ValueMap, lc::Symbol = Recu
     #     @info "" mvars loop_counters
     #     error("Unsupported multiplication between variables")
     # end
+    replacelc = !isempty(mvars)
     for (l, r) in zip(lhss, rhss)
         # skip loop counters
         # haskey(loop_counters, l) && continue
@@ -37,7 +38,7 @@ function __extract_single(exprs::Vector{Expr}, init::ValueMap, lc::Symbol = Recu
         end
         _l = Recurrences.symbol_walk(x->:($x($(lc)+1)), l)
         _r = Recurrences.symbol_walk(r) do x
-            if x != l && haskey(loop_counters, x)
+            if x != l && haskey(loop_counters, x) && replacelc
                 loop_counters[x]
             else
                 :($x($(lc)))
@@ -55,7 +56,7 @@ end
 function __is_loop_counter(l::Symbol, r::RExpr, init::ValueMap, lc::Symbol)
     inc = Basic(r) - Basic(l)
     if isempty(SymEngine.free_symbols(inc)) && haskey(init, l)
-        return :($(init[l]) + $(convert(Expr, inc))*($lc-1))
+        return :($(init[l]) + $(convert(Expr, inc))*($lc))
     end
     return nothing
 end
