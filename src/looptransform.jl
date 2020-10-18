@@ -139,7 +139,7 @@ function _transform(expr)
         if expr isa Expr && expr.head == :block
             res = merge(reduce(merge, _transform.(expr.args)))
         else
-            @error("Unsupported program construct: $expr")
+            @warn("Ignoring unsupported program construct: $expr")
             res = Expr(:block)
         end
     end
