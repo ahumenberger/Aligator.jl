@@ -1,196 +1,269 @@
-import Singular: fetch, imap
-
-function invariants(cforms::ClosedFormSystem)
-    I, loopvars, expvars, lc = preprocess([cforms], singleloop = true)[1]
-    elim = collect(Iterators.drop(Singular.gens(base_ring(I)), length(loopvars)*2))
-    Singular.eliminate(I, elim...)
+struct BranchIterator
+    bs::Vector{sideal}
+    vars::Vector{String}
+    auxvars::Vector{String}
+    length::Int
 end
 
-function invariants(loop::SingleLoop)
-    invariants(closed_forms(loop))
+function BranchIterator(bs::Vector{Vector{MPolyElem}}, vars::Vector{Symbol}, auxvars::Vector{Symbol})
+    vs = [map(Recurrences.initvar, vars); vars; auxvars]
+    R, _ = Singular.PolynomialRing(Nemo.QQ, map(string, vs))
+    σ = IdMap(R)
+    ideals = [Singular.Ideal(R, map(σ, b)) for b in bs]
+    @debug "Ideals in branch iterator" ideals
+    len = length(ideals) == 1 ? 1 : length(ideals) * (length(vars) + 1)
+    BranchIterator(ideals, map(string, vars), map(string, auxvars), len)
 end
 
-function invariants(loop::MultiLoop)
-    invariants(closed_forms(loop))
+nbranches(iter::BranchIterator) = length(iter.bs)
+
+splitgens(R, lss...) = let sf = Iterators.Stateful(gens(R))
+    (collect(Iterators.take(sf, length(ls))) for ls in lss)
 end
 
-function invariants(loops::Array{ClosedFormSystem,1})
-    if length(loops) == 0
-        warn("No loops given!")
-        return
+function stateideal(iter::BranchIterator, I::sideal, state::Int)
+    is = [Recurrences.initvar(v, 0) for v in iter.vars]
+    ms = [Recurrences.initvar(v, state + 1) for v in iter.vars]
+    fs = [Recurrences.initvar(v, state + 2) for v in iter.vars]
+    as = iter.auxvars
+    R, _ = Singular.PolynomialRing(Nemo.QQ, map(string, [ms; fs; as; is]))
+    mss, _, ass, _ = splitgens(R, ms, fs, as, is)
+    σ = IndexMap(R)
+    Singular.Ideal(R, [σ(g; force=true) for g in gens(I)]), [mss; ass]
+end
+
+function Base.iterate(iter::BranchIterator)
+    if length(iter) == 0
+        return nothing
+    # elseif length(iter) == 1
+    #     I = iter.bs[1]
+    #     _, _, as = splitgens(base_ring(I), iter.vars, iter.vars, iter.auxvars)
+    #     return (iter.bs[1], as), 1
     end
-    loopvars = string.(loops[1].vars)
-    inivars = ["$(v)_0" for v in loopvars]
-    R, _ = PolynomialRing(QQ, [inivars; loopvars])
+    stateideal(iter, iter.bs[1], 0), 1
+end
 
-    preprocessed = preprocess(loops)
-
-    index = 0
-    I_new = initial_ideal(loopvars)
-    I_o = 1
-    I_n = nothing
-    while I_n != I_o
-        I_o = I_n
-        for sys in preprocessed
-            I_new = invariants(I_new, sys..., index)
-            # println("New ideal: ", I_new)
-            index += 1
-        end
-
-        idxvars = ["$(v)_$(index+1)" for v in loopvars]
-        S, _ = PolynomialRing(QQ, [inivars; loopvars; idxvars])
-        # println("Container: ", S)
-        # rename variables to have v instead of v_index
-        b, elim = renaming_polys(loopvars, index)
-        # println("Basis (before map): ", b)        
-        b = [imap(g, S) for g in b]
-        # println("Basis (after map): ", b)
-        B = Singular.Ideal(S, b)
-
-        elim = imap.(elim, Ref(S))
-
-        I_n = Singular.eliminate(imap(I_new, S) + B, elim...)
-        I_n = groebner(imap(I_n, R))
-        # println("Final ideal: ", I_n)
-        if index > (length(loopvars)+1) * length(loops)
-            warn("something went wrong")
-        end
+function Base.iterate(iter::BranchIterator, state)
+    if state >= length(iter)
+        return nothing
     end
-    I_n
+    i = state % length(iter.bs) + 1
+    stateideal(iter, iter.bs[i], state), state + 1
 end
 
-#-------------------------------------------------------------------------------
+Base.IteratorSize(::Type{BranchIterator}) = Base.HasLength()
+Base.length(iter::BranchIterator) = iter.length
 
-function preprocess(loops::Array{ClosedFormSystem,1}; singleloop::Bool = false)
-    # assume loops[i].vars == loops[j].vars for all i,j
+# ------------------------------------------------------------------------------
 
-    # cfslist = [rec_solve(sl.body) for sl in loops]
-    # cfslist = loops.cforms
-    # println("Closed forms:", cfslist)
+function initial_ideal(vars::Vector{String}, init::ValueMap)
+    is = [Recurrences.initvar(v, 0) for v in vars]
+    fs = [Recurrences.initvar(v, 1) for v in vars]
 
-    preprocessed = []
-    for (i, loop) in enumerate(loops)
-        cfs = loop.cforms
-        exp = union(exponentials.(cfs)...)
-        exp = filter(x -> x!=Sym(1), exp)
-        
-        # collect all variables
-        lc = string(loops[i].lc)
-        loopvars = string.(loops[i].vars)
-        expvars = ["vvv_$(i)" for i in 1:length(exp)]
-
-        vars, _ = var_order(loopvars, expvars, lc, 0)        
-        if singleloop
-            vars, _ = var_order_single(loopvars, expvars, lc, 0)
-        end
-
-        R, svars = PolynomialRing(QQ, vars)
-        varmap = Dict(zip(vars, svars))
-
-        # replace exponentials in closed forms with variables
-        if !isempty(expvars)
-            expsym = Sym.(expvars)
-            expmap = Dict(zip(exp, expsym))
-            for cf in cfs
-                expvars!(cf, expmap)
-            end
-        end
-
-        # generate basis of closed forms
-        function polyfn(cf) 
-            if singleloop
-                expr = Sym("$(Sym(cf.f.x))") - replace_functions(polynomial(cf), 0)
-            else
-                expr = Sym("$(Sym(cf.f.x))_2") - replace_functions(polynomial(cf), 1)
-            end
-            # workaround as libsingular crashes when "real" rationals are contained
-            return clear_denom(expr)
-        end
-        basis = polyfn.(cfs)
-
-        sbasis = [sym2spoly(p, varmap) for p in basis]
-        I = Singular.Ideal(R, sbasis)
-
-        # dependencies
-        if !isempty(exp)
-            # println("Something with dependencies?????")            
-            A = AlgebraicDependencies.dependencies(sideal, exp, variables=expsym)
-            if A != nothing
-                # println("Something with imap?????")
-                I += imap(A, R)
-            else
-                @debug "No algebraic dependencies among exponentials"
-            end
-        end    
-
-        res = (I, loopvars, expvars, lc)
-        push!(preprocessed, res)
-    end
-    # println(preprocessed)
-    preprocessed
-end
-
-function invariants(I_old::sideal, I_new::sideal, loopvars::Array{String,1}, expvars::Array{String,1}, lc::String, index::Int)
-
-    vars, elimcnt = var_order(loopvars, expvars, lc, index)
-    R, svars = PolynomialRing(QQ, vars)
-    # map variables via order
-    I_new = fetch(I_new, R)
-    # map variables via name
-    I_old = imap(I_old, R)
-
-    elimvars = collect(Iterators.drop(svars, elimcnt))
-    Singular.eliminate(I_old + I_new, elimvars...)
-end
-
-function var_order(loopvars::Array{String,1}, expvars::Array{String,1}, lc::String, index::Int)
-    inivars = ["$(v)_0" for v in loopvars]
-    finvars = ["$(v)_$(index+2)" for v in loopvars]
-    midvars = ["$(v)_$(index+1)" for v in loopvars]
-    auxvars = [expvars; lc]
-
-    vars = [inivars; finvars; midvars; auxvars], length(inivars) + length(finvars) # also return number of variables not to eliminate
-end
-
-function var_order_single(loopvars::Array{String,1}, expvars::Array{String,1}, lc::String, index::Int)
-    inivars = ["$(v)_0" for v in loopvars]
-    finvars = ["$(v)" for v in loopvars]
-    auxvars = [expvars; lc]
-
-    vars = [inivars; finvars; auxvars], length(inivars) + length(finvars) # also return number of variables not to eliminate
-end
-
-function renaming_polys(loopvars::Array{String,1}, index::Int)
-    midvars = ["$(v)_$(index+1)" for v in loopvars]
-    # finvars = ["$(v)" for v in loopvars]
-
-    _, svars = PolynomialRing(QQ, [midvars; loopvars])
-
-    midcnt = length(midvars)
-    midsvars = collect(Iterators.take(svars, midcnt))
-    finsvars = collect(Iterators.drop(svars, midcnt))
+    R, svars = Singular.PolynomialRing(Nemo.QQ, [is; fs])
+    iss, fss = splitgens(R, is, fs)
     
-    [ x - y for (x, y) in zip(midsvars, finsvars)], midsvars # also return variables to eliminate
-end
+    iss = [haskey(init, Symbol(v)) ? Nemo.QQ(init[Symbol(v)]) : iss[i] for (i, v) in enumerate(vars)]
 
-function initial_ideal(loopvars::Array{String,1})
-    inivars = ["$(v)_0" for v in loopvars]
-    finvars = ["$(v)_1" for v in loopvars]
-
-    R, svars = PolynomialRing(QQ, [inivars; finvars])
-
-    inicnt = length(inivars)
-    inisvars = collect(Iterators.take(svars, inicnt))
-    finsvars = collect(Iterators.drop(svars, inicnt))
-    
-    basis = [ x - y for (x, y) in zip(inisvars, finsvars)]
+    basis = [x - y for (x, y) in zip(iss, fss)]
     Singular.Ideal(R, basis)
 end
 
-function replace_functions(expr::Sym, index::Int)
-    w0   = Wild("w0")
-    fns  = Sym.(collect(expr.atoms(AppliedUndef)))
-    vars = [Sym("$(string(Sym(fn.func)))_$(convert(Int, fn.args[1])+index)") for fn in fns]
-    dict = Dict(zip(fns, vars))
-    return subs(expr, dict)
+function invariants(bs::Vector{Vector{MPolyElem}}, vars::Vector{Symbol}, auxvars::Vector{Symbol}, init::ValueMap)
+    biter = BranchIterator(bs, vars, auxvars)
+    # if length(biter) == 1
+    #     I, elim = first(biter)
+    #     I = Singular.eliminate(I, elim...)
+    #     return I
+    # end
+    fixedpoint(biter, map(string, vars), init)
+end
+
+function fixedpoint(biter::BranchIterator, vars::Vector{String}, init::ValueMap)
+    is = [Recurrences.initvar(v, 0) for v in vars]    
+    vs = [vars; is]
+    R, _ = Singular.PolynomialRing(Nemo.QQ, vs)
+    bcount = nbranches(biter)
+    I = Singular.Ideal(R)
+    T = initial_ideal(vars, init)
+    for (i, (J, elim)) in enumerate(biter)
+        S = base_ring(J)
+        T = imap(T, S) # map old ideal to new ring via variable name
+        T = Singular.eliminate(T + J, elim...)
+
+        if i % bcount == 0
+            fs = [Recurrences.initvar(v, i + 1) for v in vars]
+            RR, _ = Singular.PolynomialRing(Nemo.QQ, [fs; is])
+            II = std(fetch(imap(T, RR), R)) # map current ideal to final ring
+            if bcount == 1
+                return II
+            end
+            @debug "Check if ideals are equal" T II I std(I) R isequal(I, II)
+            if isequal(I, II)
+                return I
+            end
+            I = II
+        end
+    end
+    error("Fixed-point computation failed. Should not happen.")
+end
+
+# ------------------------------------------------------------------------------
+
+function invariants(cs::Vector{Vector{T}}, _vars::Vector{Symbol}, init::ValueMap) where {T <: Recurrences.ClosedForm}
+    __vars = [Set(first(c) for c in branch) for branch in cs]
+    vars = [x for x in intersect(__vars...)]
+    removed = setdiff(Set(_vars), Set(vars))
+    if !isempty(removed)
+        @debug "No closed form found for $removed"
+    end
+    ps = Vector{MPolyElem}[]
+    as = Symbol[]
+    for c in cs
+        p, auxvars = polys(c, vars)
+        push!(ps, p)
+        push!(as, auxvars...)
+    end
+    invariants(ps, vars, as, init)
+end
+
+# ------------------------------------------------------------------------------
+
+AbstractAlgebra.isconstant(x::FracElem) = AbstractAlgebra.isconstant(numerator(x)) && AbstractAlgebra.isconstant(denominator(x))
+AbstractAlgebra.isconstant(x::fmpq) = true
+
+get_constant(x::PolyElem) = get_constant(AbstractAlgebra.coeff(x, 0))
+get_constant(x::MPolyElem) = iszero(x) ? zero(base_ring(x)) : get_constant(AbstractAlgebra.coeff(x, 1))
+get_constant(x::FracElem) = get_constant(numerator(x)) // get_constant(denominator(x))
+get_constant(x::RingElem) = x
+get_constant(x::FieldElem) = x
+
+AbstractAlgebra.show_minus_one(::Type{T}) where T <: FracElem = false
+
+function polys(cs::Vector{ClosedForm}, _all_vars::Vector{Symbol})
+
+    all_vars = copy(_all_vars)
+
+    geometrics = Dict{fmpq,Symbol}()
+    factorials = Dict{fmpq,Symbol}()
+
+    function map_geom(x::fmpq)
+        isone(x) && return x
+        haskey(geometrics, x) && return geometrics[x]
+        s = Recurrences.gensym_unhashed(:g)
+        push!(geometrics, x=>s)
+        return s
+    end
+
+    function map_fact(x::fmpq_poly)
+        R = parent(x)
+        v = gen(parent(x))
+        c = x - v
+        @assert isconstant(c) c
+        c = Nemo.coeff(c, 0)
+        for (k, s) in factorials
+            d = k - c
+            iszero(d) && return s, one(R)//one(R)
+            if isone(denominator(d))
+                n = numerator(d)
+                p = prod(v + k + i for i in 1:abs(n))
+                q = R(prod(c + i for i in 0:abs(n)-1))
+                @debug "map_fact" n p q factorials
+                if n < 0
+                    return s, p // q
+                else
+                    return s, q // p
+                end
+            end
+        end
+        s = Recurrences.gensym_unhashed(:f)
+        @assert isconstant(c)
+        push!(factorials, c=>s)
+        return s, one(R)//one(R)
+    end
+
+    function _poly(t::Recurrences.HyperTerm)
+        c = Recurrences.coeff(t)
+        g = Recurrences.geom(t)
+        f = Recurrences.fact(t)
+        n, d = numerator(f), denominator(f)
+        # make fmpq_poly, needed for factorization
+        nn = map_coeffs(get_constant, n)
+        dd = map_coeffs(get_constant, d)
+
+        function __factor(__x::fmpq_poly)
+            __f = Nemo.factor(__x)
+            c *= get_constant(unit(__f))
+            __vs = Pair{Symbol,fmpz}[]
+            for (__fac, __mul) in __f
+                # poly should be monic
+                lcoeff = Nemo.coeff(__fac, 1)
+                __fac = __fac * (1//lcoeff)
+                c *= lcoeff
+                __var, __coeff = map_fact(__fac)
+                __coeff = change_base_ring(base_ring(base_ring(c)), __coeff)
+                c *= __coeff
+                push!(__vs, __var=>__mul)
+            end
+            __vs
+        end
+        @assert AbstractAlgebra.isconstant(g)
+        facts = __factor(nn)=>__factor(dd)
+        c, map_geom(get_constant(g)), facts
+    end
+
+    function _poly(c::ClosedForm)
+        first(c), [_poly(t) for t in Recurrences.terms(last(c))]
+    end
+
+    res = map(_poly, cs)
+
+    final_vars = map(string, all_vars)
+    init_vars = map(Recurrences.initvar, final_vars)
+    rec_var = string(var(base_ring(last(first(cs)))))
+
+    mvars = String[rec_var]
+    append!(mvars, final_vars)
+    append!(mvars, init_vars)
+    append!(mvars, string(v) for v in values(geometrics))
+    append!(mvars, string(v) for v in values(factorials))
+    R, _ = Nemo.PolynomialRing(Nemo.QQ, collect(mvars))
+    σ = IdMap(R)
+    lcm_global = one(R)
+
+    function _to_mpoly(v::Symbol, terms)
+        filter!(x->x!=v, all_vars)
+        lcm = one(R)
+        res = zero(R)
+        for (coeff, geom, (fact_num, fact_den)) in terms
+            c, g = σ(coeff), σ(geom)
+            fn = reduce(*, σ(first(x)) for x in fact_num; init=one(R))
+            fd = reduce(*, σ(first(x)) for x in fact_den; init=one(R))
+            AbstractAlgebra.lcm(lcm, denominator(c)*fd)
+            res += c*g*(fn//fd)
+        end
+        AbstractAlgebra.lcm(lcm_global, lcm)
+        rhs = lcm*res
+        # TODO: compute saturated ideal
+        denominator(rhs)*lcm*σ(v) - numerator(rhs)
+    end
+
+    polys = map(x->_to_mpoly(x...), res)
+    for v in all_vars
+        push!(polys, σ(v) - σ(Recurrences.initvar(v)))
+    end
+
+    if length(geometrics) > 0
+        geoms = [replace(string(g), "//"=>"/") for g in keys(geometrics)]
+        gvars = collect(values(geometrics))
+        I = dependencies(sideal, geoms; variables = gvars)
+        if !isnothing(I)
+            aRing, _ = Singular.AsEquivalentAbstractAlgebraPolynomialRing(base_ring(I))
+            for p in gens(I)
+                push!(polys, σ(aRing(p); force=true))
+            end
+        end
+    end
+    @debug "Closed form polynomials" polys
+    polys, Iterators.flatten(((v for v in values(geometrics)), (v for v in values(factorials)), [Symbol(rec_var)]))
 end

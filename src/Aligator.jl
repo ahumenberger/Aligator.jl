@@ -1,50 +1,52 @@
-
 module Aligator
 
-export aligator, extract_loop, closed_forms, invariants
+export aligator
 
-using PyCall
-using SymPy
-using Singular
+using MacroTools
+using Recurrences
 using AlgebraicDependencies
+using Singular
+using AbstractAlgebra
+using Nemo
+using SymEngine
 
-const AppliedUndef = PyCall.PyNULL()
-
-include("utils.jl")
-include("closedform.jl")
-include("recurrence.jl")
-include("loop.jl")
+include("looptransform.jl")
+include("extract.jl")
+include("map.jl")
 include("invariants.jl")
-include("parse_julia.jl")
-include("ideals.jl")
-include("singular_imap.jl")
 
+aligator(s::String) = aligator(Meta.parse(s))
 
-function aligator(str::String)
+function aligator(x::Expr)
     _, total = @timed begin
+        (init, branches), etime = @timed transform(x)
+        init = ValueMap(k=>v for (k,v) in init if v isa Int)
+        vars = Base.unique(Iterators.flatten(map(Recurrences.symbols, branches)))
+        @debug "Extracting branches" branches vars
 
-        loop, time = @timed extract_loop(str)
-        @debug "Recurrence extraction" time
+        closedforms = extract(branches, init)
+        @debug "Recurrence Systems" closedforms
 
-        cforms, time = @timed closed_forms(loop)
-        @debug "Recurrence solving" time
-        
-        invs, time = @timed invariants(cforms)
-        @debug "Ideal computation" time
+        invs, itime = @timed invariants(closedforms, vars, init)
+        @debug "Invariant ideal" invs
     end
-    @debug "Total time needed" total
-    
+    @debug "Time needed" total etime itime
+
     return InvariantIdeal(invs)
 end
 
-function __init__()
-    copy!(AppliedUndef, PyCall.pyimport_conda("sympy.core.function", "sympy").AppliedUndef)
+struct InvariantIdeal
+    ideal::sideal
+end
 
-    include(joinpath(@__DIR__,"..", "benchmark", "singlepath.jl"))
-    include(joinpath(@__DIR__,"..", "benchmark", "multipath.jl"))
+function Base.show(io::IO, I::InvariantIdeal)
+    println(io, "Invariant ideal with $(Singular.ngens(I.ideal))-element basis:")
+    Base.print_array(io, gens(I.ideal))
+end
 
-    singlepath = [:cohencu, :freire1, :freire2, :(petter(1)), :(petter(2)), :(petter(3)), :(petter(4))]
-    multipath = [:divbin, :euclidex, :fermat, :knuth, :lcm, :mannadiv, :wensley]
+module Examples
+include("../benchmark/singlepath.jl")
+include("../benchmark/multipath.jl")
 end
 
 struct InvariantIdeal

@@ -5,28 +5,29 @@ using Aligator
 include("singlepath.jl")
 include("multipath.jl")
 
-singlepath = [:cohencu, :freire1, :freire2, :(petter(1)), :(petter(2)), :(petter(3)), :(petter(4))]
-multipath = [:divbin, :euclidex, :fermat, :knuth, :lcm, :mannadiv, :wensley]
+# singlepath = [:cohencu, :freire1, :freire2, :(petter(1)), :(petter(2)), :(petter(3)), :(petter(4))]
+# multipath = [:divbin, :euclidex, :fermat, :knuth, :lcm, :mannadiv, :wensley]
 
-const ijcar18 = BenchmarkGroup()
-ijcar18["singlepath"] = BenchmarkGroup()
-ijcar18["multipath"] = BenchmarkGroup()
+singlepath = [:cubes, :eucliddiv, :freire1, :freire2, :(petter(2)), :(petter(3)), :(petter(4)), :(petter(22)), :(petter(23)), :psolv1s, :psolv2s]
+multipath = [:euclidex, :fermat, :knuth, :lcm, :wensley, :divbin, :psolv2m, :psolv3m, :psolv4m, :psolv10m]
 
-macro createbenchmarks(suite, instances)
-    for loop in eval(instances)
-        loopstr = eval(loop)
-        suite = eval(suite)
-        suite[string(loop)] = @benchmarkable aligator($(loopstr))
+group = BenchmarkGroup()
+group["singlepath"] = BenchmarkGroup()
+group["multipath"] = BenchmarkGroup()
+
+function create(suite, instances)
+    for loop in instances
+        suite[string(loop)] = @benchmarkable aligator($loop) samples=1 seconds=60 evals=5
     end
 end
 
-@createbenchmarks ijcar18["singlepath"] singlepath
-@createbenchmarks ijcar18["multipath"] multipath
+create(group["singlepath"], singlepath)
+create(group["multipath"], multipath)
 
-tune!(ijcar18)
-results = run(ijcar18)
+# tune!(group)
+# results = run(group)
 
-showall(results)
+# res = show(results)
 
 # results["singlepath"]
 # results["multipath"]
