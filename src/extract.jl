@@ -1,5 +1,5 @@
 
-const ValueMap = Dict{Symbol,Int}
+const ValueMap = Dict{Symbol,Union{Int,Rational}}
 const RExprMap = Dict{Symbol,RExpr}
 const ExprVec = Vector{Expr}
 
