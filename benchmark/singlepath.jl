@@ -38,8 +38,9 @@ freire2 = quote
     end
 end
 
-expsolvable1 = quote
-    k = 1
+psolv1s = quote
+    k = 0
+    t1, t2, a, b, c, d = 1, 1, 1, 1, 1, 1
     while true
         t1 = t2
         t2 = a
@@ -51,7 +52,7 @@ expsolvable1 = quote
     end
 end
 
-expsolvable2 = quote
+psolv2s = quote
     t1 = 1; t2 = 1;
     s1 = 1; s2 = 2;
     a = 3; b = 1;
@@ -61,12 +62,37 @@ expsolvable2 = quote
     while true
         a = 3*(n+3/2)*a
         s1 = s2; s2 = b
-        b = 5*(n+3/2)*s2- 3/2*(1+2n)*(3+2*n)*s1
+        b = 5*(n+3/2)*s2- 3/2*(1+2*n)*(3+2*n)*s1
         t1 = t2; t2 = d
         d = 4*(4 + n)*t2 - 3*(3 + n)*(4 + n)*t1
         e = (n + 4)*e
         f = 2*f
         c = -3*c + 2
         n = n+1
+    end
+end
+
+intcbrt = quote
+    while true
+        x = x-s
+        s = s + 6r + 3
+        r = r + 1
+    end
+end
+
+cubes = quote
+    c, k, m, n = 0, 1, 6, 0
+    while true
+        c = c + k
+        k = k + m
+        m = m + 6
+        n = n + 1
+    end
+end
+
+eucliddiv = quote
+    while true
+        r = r - y
+        q = q + 1
     end
 end

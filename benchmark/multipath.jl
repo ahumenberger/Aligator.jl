@@ -80,19 +80,6 @@ knuth = quote
     end
 end
 
-mannadiv = quote
-    while y3 != 0
-        if y2 + 1 == x2
-            y1 = y1 + 1
-            y2 = 0
-            y3 = y3 - 1
-        else
-            y2 = y2 + 1
-            y3 = y3 - 1
-        end
-    end
-end
-
 divbin = quote
     while b != B
         x = 2*x
@@ -104,7 +91,7 @@ divbin = quote
     end
 end
 
-extpsolv2 = quote
+psolv2m = quote
     n = 1
     while true
         if true
@@ -120,7 +107,7 @@ extpsolv2 = quote
     end
 end
 
-extpsolv3 = quote
+psolv3m = quote
     n1, n2 = 1, 1
     while true
         if true
@@ -141,7 +128,7 @@ extpsolv3 = quote
     end
 end
 
-extpsolv4 = quote
+psolv4m = quote
     n1, n2 = 1, 1
     while true
         if true
@@ -166,7 +153,7 @@ extpsolv4 = quote
     end
 end
 
-extpsolv10 = quote
+psolv10m = quote
     n1, n2, n3, n4, n5 = 1, 1, 1, 1, 1
     while true
         if true
@@ -215,5 +202,66 @@ extpsolv10 = quote
             b = 16*b
             c = 1/4*c
         end
+    end
+end
+
+prodbin = quote
+    while y!=0  
+        if y % 2 ==1 
+            z = z+x;
+            y = y-1;
+        end
+        x = 2*x;
+        y = y/2;
+    end
+end
+
+dijkstra = quote
+    while q!=1
+        q=q/4;
+        h=p+q;
+        p=p/2;
+        if r>=h
+            p=p+q;
+            r=r-h;
+        end
+    end
+end
+
+z3sqrt = quote
+    while 2*p*r >= e 
+        if 2*r-2*q-p >= 0 
+            r = 2*r-2*q-p;
+            q = q+p;
+            p = p/2;
+        else
+            r = 2*r;
+            p = p/2;
+        end
+    end
+end
+
+writers = quote
+    r = 0;
+    w = 0;
+    k = 14;
+    # c1 = 3;
+    # c2 = 2;
+    while true
+        global r, w, k, c1, c2
+        if w == 0
+            r = r+1;
+            k = k-c1;
+        elseif r == 0
+            w = w+1;
+            k = k-c2;
+        elseif w==0
+            r = r-1;
+            k = k+c1;
+        elseif r==0
+            w = w-1;
+            k = k+c2;
+        end
+        @info  2*w+k+3*r-14==0
     end
 end
