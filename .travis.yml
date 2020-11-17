@@ -16,5 +16,5 @@ matrix:
     - julia: nightly
 
 before_install:
-  - julia --project -e 'import Pkg; Pkg.add(PackageSpec(url="https://github.com/ahumenberger/Recurrences.jl"));'
-  - julia --project -e 'import Pkg; Pkg.add(PackageSpec(url="https://github.com/ahumenberger/AlgebraicDependencies.jl"));'
+  - julia --project -e 'import Pkg; Pkg.add(Pkg.PackageSpec(url="https://github.com/ahumenberger/Recurrences.jl"));'
+  - julia --project -e 'import Pkg; Pkg.add(Pkg.PackageSpec(url="https://github.com/ahumenberger/AlgebraicDependencies.jl"));'
