@@ -49,13 +49,4 @@ include("../benchmark/singlepath.jl")
 include("../benchmark/multipath.jl")
 end
 
-struct InvariantIdeal
-    ideal::sideal
-end
-
-function Base.show(io::IO, I::InvariantIdeal)
-    println(io, "Invariant ideal with $(ngens(I.ideal))-element basis:")
-    Base.print_array(io, gens(I.ideal))
-end
-
 end # module
