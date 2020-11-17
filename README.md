@@ -23,6 +23,8 @@ julia> loop = quote
          end
        end
 julia> aligator(loop)
+Invariant ideal with 1-element basis:
+ y*x-y00*x00
 ```
 
 ## Publications
