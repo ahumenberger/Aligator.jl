@@ -17,12 +17,12 @@ pkg> add https://github.com/ahumenberger/Aligator.jl
 
 ```julia
 julia> using Aligator
-julia> loop = """
+julia> loop = quote
          while true
            x = 2*x
            y = 1/2*y
          end
-       """
+       end
 julia> aligator(loop)
 ```
 
