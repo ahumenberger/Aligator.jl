@@ -7,9 +7,8 @@ Aligator.jl is a Julia package for the automated generation of loop invariants. 
 
 ```julia
 
-pkg> add ContinuedFractions#master
-pkg> add https://github.com/ahumenberger/Singular.jl
-
+pkg> add https://github.com/ahumenberger/Recurrences.jl
+pkg> add https://github.com/ahumenberger/AlgebraicDependencies.jl
 pkg> add https://github.com/ahumenberger/Aligator.jl
 ```
 
@@ -30,6 +29,9 @@ julia> aligator(loop)
 
 1. A. Humenberger, M. Jaroschek, L. Kovács. Invariant Generation for Multi-Path Loops with Polynomial Assignments. In *Verification, Model Checking, and Abstract Interpretation (VMCAI)*, 2018.
 <https://arxiv.org/abs/1801.03967>
+
+1. A. Humenberger, M. Jaroschek, L. Kovács. Aligator.jl - A Julia Package for Loop Invariant Generation. In *Intelligent Computer Mathematics (CICM)*, 2018.
+<https://arxiv.org/abs/1808.05394>
 
 1. A. Humenberger, M. Jaroschek, L. Kovács. Automated Generation of Non-Linear Loop Invariants Utilizing Hypergeometric Sequences. In *International Symposium on Symbolic and Algebraic Computation (ISSAC)*, 2017.
 <https://arxiv.org/abs/1705.02863>
